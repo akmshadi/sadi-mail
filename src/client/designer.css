@@ -1,0 +1,139 @@
+/* Email Design Builder. App tokens only; the email itself carries its own colours.
+   This file loads before styles.css, so rules that refine a shared class are scoped under .designer or .compose-page. */
+
+.designer { flex: 1; min-height: 0; display: flex; flex-direction: column; container-type: inline-size; }
+.dz-switch { flex: 0 0 auto; display: flex; padding: 8px 16px; border-bottom: 1px solid var(--line-2); }
+.dz-switch .tabs { flex: 1; }
+.designer .dz-switch .tabs button { flex: 1; }
+.dz-grid { flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(0, 1fr); }
+.dz-edit { min-width: 0; min-height: 0; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 28px; }
+.dz-preview { min-width: 0; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; background: var(--panel); }
+.dz-grid[data-view='edit'] .dz-preview, .dz-grid[data-view='preview'] .dz-edit { display: none; }
+
+/* Wide enough for both: blocks on the left, the email on the right. */
+@container (min-width: 860px) {
+  .dz-switch { display: none; }
+  .dz-grid { grid-template-columns: clamp(340px, 36%, 400px) minmax(0, 1fr); }
+  .dz-grid[data-view] .dz-edit, .dz-grid[data-view] .dz-preview { display: flex; }
+  .dz-edit { border-right: 1px solid var(--line); }
+}
+
+/* ---------- sections and fields ---------- */
+.dz-section { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+.dz-section h2 { font-size: 14px; font-weight: 600; letter-spacing: -0.005em; display: flex; align-items: center; gap: 8px; }
+.dz-count { margin-left: auto; font-size: 12px; font-weight: 500; color: var(--ink-3); }
+.dz-label { font-size: 12px; font-weight: 600; color: var(--ink-2); margin-top: 4px; }
+.dz-fields, .dz-card-body { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; align-items: start; }
+.dz-field { display: flex; flex-direction: column; gap: 6px; min-width: 0; font-size: 12px; font-weight: 600; color: var(--ink-2); }
+.dz-field > span:first-child { line-height: 16px; }
+.designer .dz-field .field { width: 100%; min-width: 0; font-weight: 400; color: var(--ink); }
+.designer .dz-field input.field, .designer .dz-field select.field { height: 34px; padding-top: 0; padding-bottom: 0; }
+.designer .wide { grid-column: 1 / -1; }
+.dz-hint { margin: 0; font-size: 12px; font-weight: 400; color: var(--ink-3); line-height: 1.45; }
+.dz-range { display: flex; align-items: center; gap: 10px; height: 34px; font-weight: 400; }
+.dz-range input { flex: 1; min-width: 0; margin: 0; accent-color: var(--accent); }
+.dz-range output { flex: 0 0 auto; width: 40px; text-align: right; font-size: 12.5px; color: var(--ink-2); }
+
+/* ---------- starting designs ---------- */
+.dz-starters { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.dz-starter { min-width: 0; padding: 8px; border: 1px solid var(--line); border-radius: 10px; background: var(--raised); text-align: left; display: flex; flex-direction: column; gap: 2px; transition: border-color var(--dur-hover) var(--ease-out); }
+.dz-starter:hover { border-color: var(--accent-mid); }
+.dz-starter b { margin-top: 6px; font-size: 13px; font-weight: 600; }
+.dz-starter small { font-size: 12px; color: var(--ink-3); line-height: 1.4; }
+.dz-thumb { height: 76px; padding: 6px 8px; border-radius: 6px; background: var(--subtle); border: 1px solid var(--line-2); display: flex; flex-direction: column; gap: 3px; overflow: hidden; }
+.dz-thumb i { display: block; font-style: normal; }
+.dz-thumb > i { flex: 0 0 auto; display: flex; flex-direction: column; align-items: flex-start; gap: 2px; }
+.dz-thumb > i.a-center { align-items: center; }
+.dz-thumb > i.a-right { align-items: flex-end; }
+.dz-thumb .t-head { margin: -6px -8px 2px; padding: 4px 8px; background: var(--ink-2); }
+.dz-thumb .t-head > i { width: 36%; height: 3px; border-radius: 2px; background: var(--surface); }
+.dz-thumb .t-heading > i { width: 58%; height: 4px; border-radius: 2px; background: var(--ink-2); }
+.dz-thumb .t-heading.l2 > i { width: 42%; height: 3px; }
+.dz-thumb .t-text > i { width: 88%; height: 2px; border-radius: 1px; background: var(--ink-3); opacity: 0.45; }
+.dz-thumb .t-text > i + i { width: 62%; }
+.dz-thumb .t-button > i { width: 26%; height: 5px; border-radius: 2px; background: var(--accent); }
+.dz-thumb .t-divider { height: 1px; background: var(--line); }
+.dz-thumb .t-items > i { width: 100%; height: 2px; background: var(--ink-3); opacity: 0.45; }
+.dz-thumb .t-items > i:last-child { height: 3px; background: var(--ink-2); opacity: 1; }
+.dz-thumb > .t-columns { flex-direction: row; gap: 6px; }
+.dz-thumb .t-columns > i { flex: 1; height: 12px; border-radius: 2px; background: var(--line); }
+.dz-thumb .t-quote > i { width: 70%; height: 6px; border-left: 2px solid var(--accent); background: var(--line-2); }
+.dz-thumb > .t-footer { align-items: center; margin-top: 2px; }
+.dz-thumb .t-footer > i { width: 50%; height: 2px; background: var(--ink-3); opacity: 0.35; }
+
+/* ---------- colours ---------- */
+.dz-colors { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.dz-color > div { display: flex; gap: 6px; min-width: 0; }
+.dz-color input[type='color'] { flex: 0 0 auto; width: 34px; height: 34px; padding: 3px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); cursor: pointer; }
+.dz-color input[type='color']::-webkit-color-swatch-wrapper { padding: 0; }
+.dz-color input[type='color']::-webkit-color-swatch { border: 0; border-radius: 5px; }
+.dz-color input[type='color']::-moz-color-swatch { border: 0; border-radius: 5px; }
+.designer .dz-color .field { flex: 1; min-width: 0; height: 34px; padding-top: 0; padding-bottom: 0; font-size: 12.5px; text-transform: uppercase; }
+
+/* ---------- block cards ---------- */
+.dz-blocks { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.dz-card { min-width: 0; border: 1px solid var(--line); border-radius: 10px; background: var(--raised); box-shadow: var(--shadow-xs); }
+.dz-card-head { display: flex; align-items: center; padding: 3px 4px 3px 2px; }
+.designer .dz-card-head .icon-btn { width: 30px; height: 30px; }
+.dz-toggle { flex: 1; min-width: 0; height: 32px; padding: 0 8px; border: 0; border-radius: 7px; background: transparent; color: var(--ink); display: flex; align-items: center; gap: 8px; text-align: left; }
+.dz-toggle:hover { background: var(--hover); }
+.dz-toggle b { flex: 0 0 auto; font-size: 13px; font-weight: 600; white-space: nowrap; }
+.dz-toggle span { font-size: 12.5px; color: var(--ink-3); }
+.dz-chev { flex: 0 0 auto; color: var(--ink-3); transition: transform var(--dur-hover) var(--ease-out); }
+.dz-card.open .dz-chev { transform: rotate(90deg); }
+.dz-card-body { padding: 12px; border-top: 1px solid var(--line-2); }
+.dz-sub { grid-column: 1 / -1; min-width: 0; margin: 0; padding: 8px 12px 12px; border: 1px solid var(--line-2); border-radius: 8px; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; align-items: start; }
+.dz-sub legend { padding: 0 4px; font-size: 12px; font-weight: 600; color: var(--ink-3); }
+.dz-items { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.dz-items-head, .dz-items-row { display: grid; grid-template-columns: minmax(0, 1fr) 96px 30px; gap: 6px; align-items: center; }
+.dz-items-head span { font-size: 12px; font-weight: 600; color: var(--ink-2); }
+.designer .dz-items-row .field { width: 100%; min-width: 0; height: 34px; padding-top: 0; padding-bottom: 0; }
+.designer .dz-items-row .icon-btn { width: 30px; height: 30px; }
+.dz-check { display: flex; align-items: center; gap: 8px; min-height: 30px; font-size: 13px; font-weight: 500; color: var(--ink); cursor: pointer; }
+.dz-check input { width: 15px; height: 15px; margin: 0; accent-color: var(--accent); }
+.dz-add { align-self: flex-start; }
+.designer .dz-add > .menu { top: auto; bottom: 36px; left: 0; right: auto; width: 220px; }
+
+/* ---------- preview ---------- */
+.dz-preview-bar { position: sticky; top: 0; z-index: 1; flex: 0 0 auto; min-height: 48px; padding: 8px 16px; display: flex; align-items: center; gap: 12px; border-bottom: 1px solid var(--line-2); background: var(--panel); }
+.dz-width { font-size: 12px; color: var(--ink-3); white-space: nowrap; }
+.dz-canvas { flex: 1 0 auto; min-width: 0; padding: 24px; }
+.dz-fit { width: 100%; display: flex; justify-content: center; }
+.dz-stage { position: relative; flex: 0 0 auto; overflow: hidden; border-radius: 8px; background: var(--surface); box-shadow: 0 0 0 1px var(--line), var(--shadow-sm); }
+.dz-stage.phone { border-radius: 16px; }
+.dz-stage iframe { position: absolute; left: 0; top: 0; display: block; border: 0; transform-origin: 0 0; }
+
+/* ---------- compose page in Designed mode ---------- */
+.compose-tools .tabs { margin-left: auto; }
+.compose-hint { flex: 0 0 auto; padding: 8px 24px; border-bottom: 1px solid var(--line-2); font-size: 12.5px; color: var(--ink-3); }
+.compose-page .menu .pill { margin-left: auto; font-size: 11px; padding: 2px 6px; }
+
+@media (max-width: 760px) {
+  .dz-switch { padding: 8px 16px; }
+  .designer .tabs button { height: 40px; }
+  .dz-edit, .dz-preview { overflow: visible; }
+  .dz-canvas { padding: 16px; }
+  .dz-preview-bar { padding: 4px 16px; min-height: 52px; }
+  .designer .dz-card-head .icon-btn, .designer .dz-items-row .icon-btn { width: 44px; height: 44px; }
+  .dz-toggle { height: 44px; }
+  .designer .dz-field input.field, .designer .dz-field select.field, .designer .dz-color .field, .designer .dz-items-row .field { height: 44px; font-size: 16px; }
+  .designer .dz-field textarea.field { font-size: 16px; }
+  .dz-color input[type='color'] { width: 44px; height: 44px; }
+  .dz-fields, .dz-card-body, .dz-sub { grid-template-columns: minmax(0, 1fr); }
+  .dz-items-head, .dz-items-row { grid-template-columns: minmax(0, 1fr) 92px 44px; }
+  .designer .btn.small { height: 44px; padding: 0 14px; }
+  .dz-check { min-height: 44px; }
+  .dz-check input { width: 20px; height: 20px; }
+  .dz-range { height: 44px; }
+  .designer .dz-add > .menu { position: fixed; left: 12px; right: 12px; top: auto; bottom: 12px; width: auto; }
+  .compose-hint { padding: 8px 16px; }
+}
+
+/* Settings › Templates: a designed template is marked, and its name still truncates. */
+.tpl-name { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.tpl-name .pill { flex: 0 0 auto; font-size: 11px; padding: 2px 6px; }
+
+.dz-image { display: flex; flex-direction: column; gap: 6px; }
+.dz-image-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.dz-image-row img, .dz-image-row i { width: 56px; height: 40px; border-radius: 6px; border: 1px solid var(--line); background: repeating-conic-gradient(var(--subtle) 0 25%, var(--surface) 0 50%) 0 0 / 12px 12px; object-fit: contain; display: flex; align-items: center; justify-content: center; color: var(--ink-3); flex: 0 0 auto; }
+.dz-letterhead { align-self: flex-start; margin: 4px 0 8px; }

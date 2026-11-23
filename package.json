@@ -1,0 +1,66 @@
+{
+  "name": "sadi-mail",
+  "version": "0.1.0",
+  "private": true,
+  "description": "A free, open-source email client for Cloudflare Email and any other mail server. Runs on your own Cloudflare account and embeds in your own ERP or application.",
+  "author": "A K M Shoriful Islam Sadi",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/akmshadi/sadi-mail.git"
+  },
+  "homepage": "https://github.com/akmshadi/sadi-mail#readme",
+  "bugs": {
+    "url": "https://github.com/akmshadi/sadi-mail/issues"
+  },
+  "keywords": [
+    "email",
+    "email-client",
+    "cloudflare",
+    "cloudflare-workers",
+    "email-routing",
+    "d1",
+    "r2",
+    "imap",
+    "smtp",
+    "self-hosted",
+    "embeddable",
+    "workers-ai"
+  ],
+  "type": "module",
+  "scripts": {
+    "dev": "node scripts/dev.mjs",
+    "setup": "node scripts/setup.mjs",
+    "cloudflare": "node scripts/setup.mjs",
+    "dev:client": "vite",
+    "build:client": "vite build",
+    "db:migrate": "wrangler d1 migrations apply sadi-mail --local",
+    "seed": "node scripts/seed.mjs",
+    "typecheck": "tsc -p tsconfig.worker.json --noEmit && tsc -p tsconfig.client.json --noEmit",
+    "test": "vitest run",
+    "import-mail": "node scripts/import.mjs"
+  },
+  "dependencies": {
+    "@fontsource-variable/inter": "^5.2.5",
+    "@fontsource-variable/jetbrains-mono": "^5.2.5",
+    "hono": "4.13.19",
+    "jose": "^6.2.18",
+    "postal-mime": "^4.2.1",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1"
+  },
+  "devDependencies": {
+    "@cloudflare/vitest-plugin": "1.9.0",
+    "@cloudflare/workers-types": "5.20261121.1",
+    "@types/react": "^19.2.0",
+    "@types/react-dom": "^19.2.0",
+    "@vitejs/plugin-react": "^6.3.0",
+    "typescript": "^5.9.0",
+    "vite": "^8.3.8",
+    "vitest": "^4.1.0",
+    "wrangler": "4.166.0"
+  },
+  "optionalDependencies": {
+    "imapflow": "2.12.2"
+  }
+}

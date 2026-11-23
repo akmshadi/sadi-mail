@@ -1,0 +1,15 @@
+node_modules
+dist
+.wrangler
+.dev.vars
+*.log
+.DS_Store
+.dev.vars.*
+
+# A real deployment's own settings (ids, sign-in) stay out of the repository.
+wrangler.*.jsonc
+.deploy.local.json
+
+# Local tooling caches
+.base-ast
+.base-ast-cache

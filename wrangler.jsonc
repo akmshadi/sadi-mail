@@ -1,0 +1,35 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "sadi-mail",
+  "main": "src/worker/index.ts",
+  "compatibility_date": "2026-11-01",
+  "compatibility_flags": ["nodejs_compat"],
+  "assets": {
+    "directory": "./dist/client",
+    "not_found_handling": "single-page-application",
+    "run_worker_first": ["/api/*", "/media/*"]
+  },
+  "d1_databases": [
+    { "binding": "DB", "database_name": "sadi-mail", "database_id": "00000000-0000-0000-0000-000000000000", "migrations_dir": "migrations" }
+  ],
+  "r2_buckets": [{ "binding": "MAIL", "bucket_name": "sadi-mail" }],
+  "triggers": { "crons": ["* * * * *"] },
+  // Optional. Sadi Mail is a complete mail client without AI. To add the assistant, uncomment this line:
+  // Cloudflare Workers AI then runs on your own account (it needs `wrangler login`, in local development too).
+  // "ai": { "binding": "AI" },
+  "vars": {
+    // "dry-run" stores the message and sends nothing. "cloudflare" uses Cloudflare Email Sending.
+    "SEND_MODE": "dry-run",
+    // "dev" trusts localhost only. "access" requires a Cloudflare Access token.
+    "AUTH_MODE": "dev",
+    // What to do with mail for an address Sadi Mail has not seen: "create" or "reject".
+    "UNKNOWN_RECIPIENT": "create",
+    "ACCESS_TEAM_DOMAIN": "",
+    "ACCESS_AUD": "",
+    // JSON array of public JWKs (Ed25519) of host applications allowed to embed or call Sadi Mail.
+    "HOST_PUBLIC_KEYS": "[]",
+    "EMBED_ALLOWED_ORIGINS": "",
+    // The most model calls Sadi Mail will make in one day (UTC), across agents and people.
+    "AI_DAILY_LIMIT": "500"
+  }
+}

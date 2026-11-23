@@ -1,0 +1,8 @@
+From: Billing <billing@shop.example>
+To: old@import-test.example
+Subject: Your receipt
+Date: Tue, 2 Mar 2021 12:00:00 +0000
+MIME-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+
+This message has no Message-ID header on purpose.

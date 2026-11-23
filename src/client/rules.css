@@ -1,0 +1,21 @@
+.rules-row { flex-wrap: wrap; }
+.rules-row .rules-sentence { display: block; font-size: 12.5px; color: var(--ink-2); line-height: 1.45; overflow-wrap: anywhere; }
+.rules-row .rules-tools { display: flex; align-items: center; gap: 6px; flex: 0 0 auto; }
+.rules-row.is-off .rules-sentence, .rules-row.is-off b { color: var(--ink-3); }
+.rules-check { flex-direction: row !important; align-items: center; gap: 8px !important; font-weight: 500 !important; color: var(--ink) !important; min-height: 34px; }
+.rules-check input { width: 16px; height: 16px; accent-color: var(--accent); margin: 0; }
+.rules-group { grid-column: 1 / -1; margin: 4px 0 0; font-size: 12px; font-weight: 600; color: var(--ink-2); letter-spacing: 0.02em; }
+.rules-newlabel { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.rules-newlabel .field { flex: 1 1 160px; min-width: 0; }
+.rules-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+
+@media (max-width: 760px) {
+  .rules-row .rules-tools { width: 100%; justify-content: flex-end; }
+  .rules-row .rules-tools .btn, .rules-row .rules-tools .icon-btn { min-height: 44px; }
+  .rules-row .rules-tools .icon-btn { width: 44px; }
+  .rules-row .rules-tools .switch { margin: 12px 8px; }
+  .rules-form .field, .rules-form .btn, .rules-card .card-head .btn { min-height: 44px; }
+  .rules-form .rules-check { min-height: 44px; }
+  .rules-form .rules-check input { width: 22px; height: 22px; }
+  .rules-form .btn.primary { flex: 1 1 auto; justify-content: center; }
+}
