@@ -13,3 +13,4 @@ wrangler.*.jsonc
 # Local tooling caches
 .base-ast
 .base-ast-cache
+.dns-changes.local.jsonl

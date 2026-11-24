@@ -8,6 +8,30 @@ Built for people who work from many addresses at once: every address on every do
 
 Made by **A K M Shoriful Islam Sadi**. MIT licence.
 
+## Screenshots
+
+All pictures show the sample mail that `pnpm seed` delivers on your own computer.
+
+**The inbox.** Mailboxes as tiles on the left, every conversation as its own card, the message beside it.
+
+![The Sadi Mail inbox with a conversation open](docs/images/inbox.png)
+
+**Dark theme, and a forged sender caught.** Mail that fails the sender check is marked before you read it.
+
+![The inbox in the dark theme, showing a warning on a message whose sender could not be verified](docs/images/inbox-dark.png)
+
+**The email designer.** Build a designed email from blocks, starting with your company header and footer.
+
+![The email designer with a company header, a heading, a button and a footer](docs/images/designer.png)
+
+**People and permissions.** Four roles, and per-mailbox permissions for everyone who is not an owner or admin.
+
+![The People settings screen listing the four roles](docs/images/people.png)
+
+**On a phone.**
+
+<img src="docs/images/phone-inbox.png" alt="The Sadi Mail inbox on a phone" width="320">
+
 ## What It Does
 
 | Area | What You Get |
