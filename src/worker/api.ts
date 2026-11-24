@@ -360,7 +360,7 @@ api.get('/messages/:id/raw', async (c) => {
 api.post('/send', async (c) => {
   const p = c.var.principal;
   const body = await c.req.json<SendRequest>().catch(() => null);
-  if (!body || typeof body.fromAddressId !== 'string' || !Array.isArray(body.to)) throw new HttpError(400, 'bad_request', 'A From address and recipients are required.');
+  if (!body || (typeof body.fromAddressId !== 'string' && typeof body.fromEmail !== 'string') || !Array.isArray(body.to)) throw new HttpError(400, 'bad_request', 'A From address and recipients are required.');
   const result = await sendMessage(c.env, p, body);
   await audit(c.env, p, 'message.send', result.messageId, result.status);
   // Undo send: the message waits a few seconds, then leaves from here. The cron trigger is the safety net.

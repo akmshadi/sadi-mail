@@ -176,6 +176,16 @@ export interface SendRequest {
   undoSeconds?: number;
   /** The saved draft being sent. Its attachments go with the message and the draft is removed. */
   draftId?: string;
+  /** For a host application: the From address by its email, instead of `fromAddressId`. */
+  fromEmail?: string;
+  /** Where replies should go, when not the From address. */
+  replyTo?: string;
+  /** Extra headers. Only List-Unsubscribe, List-Unsubscribe-Post and X-* names are accepted. */
+  headers?: Record<string, string>;
+  /** Files sent with the message, base64. At most 10 files and 10 MB together. */
+  attachments?: { filename: string; mime?: string; contentBase64: string }[];
+  /** A caller's own key for this message. Sending the same key again returns the first result and sends nothing. */
+  idempotencyKey?: string;
 }
 
 export interface SendResult {

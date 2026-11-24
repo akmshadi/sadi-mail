@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { flushSync } from 'react-dom';
 import type { DraftDetail, MessageDetail, View } from '../shared/types';
-import { RequestError, api } from './api';
+import { RequestError, api, setHostToken } from './api';
 import { ago, bytes } from './format';
 import { Icon, type IconName } from './icons';
 import { ContextPanel, Reader, ThreadList, VIEW_TITLES, type ComposeMode } from './Mail';
@@ -160,7 +160,13 @@ export function App() {
   useEffect(() => {
     if (!embedded) return;
     const onMessage = (e: MessageEvent) => {
-      if (e.source !== window.parent || !e.data || e.data.type !== 'sadi-mail:theme') return;
+      if (e.source !== window.parent || !e.data) return;
+      // The host renews its short-lived token without reloading the frame, so an open draft is never lost.
+      if (e.data.type === 'sadi-mail:token' && typeof e.data.token === 'string' && e.data.token.length < 4096) {
+        setHostToken(e.data.token);
+        return;
+      }
+      if (e.data.type !== 'sadi-mail:theme') return;
       if (e.data.theme === 'light' || e.data.theme === 'dark') setTheme(e.data.theme);
       if (e.data.tokens && typeof e.data.tokens === 'object') {
         for (const [key, value] of Object.entries(e.data.tokens as Record<string, unknown>)) {
@@ -169,7 +175,7 @@ export function App() {
       }
     };
     window.addEventListener('message', onMessage);
-    window.parent.postMessage({ type: 'sadi-mail:ready' }, '*');
+    window.parent.postMessage({ type: 'sadi-mail:ready', features: ['token-renewal'] }, '*');
     return () => window.removeEventListener('message', onMessage);
   }, [embedded]);
   const unreadTotal = mailboxes.reduce((n, m) => n + m.unread, 0);

@@ -14,6 +14,8 @@ interface Outgoing {
   inReplyTo: string | null;
   references: string[];
   attachments?: { filename: string; mime: string; key: string }[];
+  replyTo?: string;
+  headers?: Record<string, string>;
 }
 
 interface Delivery {
@@ -41,7 +43,9 @@ const cloudflare: Transport = async (env, message) => {
   const headers: Record<string, string> = {};
   if (message.inReplyTo) headers['In-Reply-To'] = `<${message.inReplyTo}>`;
   if (message.references.length) headers['References'] = message.references.map((r) => `<${r}>`).join(' ');
+  Object.assign(headers, message.headers ?? {});
   const result = await env.EMAIL.send({
+    replyTo: message.replyTo,
     from: message.from.name ? { email: message.from.email, name: message.from.name } : message.from.email,
     to: message.to.map((p) => p.email),
     cc: message.cc.length ? message.cc.map((p) => p.email) : undefined,
@@ -79,6 +83,7 @@ function toEml(message: Outgoing, messageId: string, at: number): string {
     `Subject: ${message.subject}`,
     `Date: ${new Date(at).toUTCString()}`,
     `Message-ID: <${messageId}>`,
+    ...(message.replyTo ? [`Reply-To: ${message.replyTo}`] : []),
     ...(message.inReplyTo ? [`In-Reply-To: <${message.inReplyTo}>`] : []),
     ...(message.references.length ? [`References: ${message.references.map((r) => `<${r}>`).join(' ')}`] : []),
     'MIME-Version: 1.0',
@@ -100,11 +105,50 @@ function cleanPeople(list: Person[] | undefined): Person[] {
   return out;
 }
 
+const HOST_HEADER = /^(List-Unsubscribe|List-Unsubscribe-Post|X-[A-Za-z0-9-]{1,60})$/i;
+
+/** Extra headers a caller may set. Anything that could change who the message is from, or break the header block, is refused. */
+function cleanHeaders(input: unknown): Record<string, string> | undefined {
+  if (!input || typeof input !== 'object') return undefined;
+  const out: Record<string, string> = {};
+  for (const [name, value] of Object.entries(input as Record<string, unknown>)) {
+    if (!HOST_HEADER.test(name) || typeof value !== 'string' || value.length > 2000 || /[\r\n]/.test(value)) throw new HttpError(422, 'invalid_header', `The header "${name.slice(0, 60)}" is not allowed.`);
+    out[name] = value;
+  }
+  return Object.keys(out).length ? out : undefined;
+}
+
+function decodeFiles(input: SendRequest['attachments']): { filename: string; mime: string; bytes: Uint8Array }[] {
+  if (!Array.isArray(input) || input.length === 0) return [];
+  if (input.length > 10) throw new HttpError(422, 'too_many_attachments', 'A message can carry at most 10 files.');
+  let total = 0;
+  return input.map((a) => {
+    const filename = String(a?.filename ?? '').replace(/[\\/\r\n"]/g, '_').trim().slice(0, 200);
+    if (!filename || typeof a.contentBase64 !== 'string') throw new HttpError(422, 'invalid_attachment', 'Each file needs a name and its content.');
+    let bytes: Uint8Array;
+    try {
+      bytes = Uint8Array.from(atob(a.contentBase64), (ch) => ch.charCodeAt(0));
+    } catch {
+      throw new HttpError(422, 'invalid_attachment', `"${filename}" is not valid base64.`);
+    }
+    total += bytes.byteLength;
+    if (total > 10 * 1024 * 1024) throw new HttpError(422, 'attachments_too_large', 'The files are larger than 10 MB together.');
+    const mime = typeof a.mime === 'string' && /^[\w.+-]+\/[\w.+-]+$/.test(a.mime) ? a.mime : 'application/octet-stream';
+    return { filename, mime, bytes };
+  });
+}
+
+async function keyedId(userId: string, key: string): Promise<string> {
+  const digest = new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(`${userId}\n${key}`)));
+  return 'k' + Array.from(digest.slice(0, 16), (b) => b.toString(16).padStart(2, '0')).join('');
+}
+
 /** Queue or deliver a message written by a person. */
 export async function sendMessage(env: Env, principal: Principal, request: SendRequest): Promise<SendResult> {
-  const address = await env.DB.prepare('SELECT id, mailbox_id, email, display_name FROM address WHERE id = ?')
-    .bind(request.fromAddressId)
-    .first<{ id: string; mailbox_id: string; email: string; display_name: string }>();
+  const address = await (request.fromEmail && !request.fromAddressId
+    ? env.DB.prepare('SELECT id, mailbox_id, email, display_name FROM address WHERE email = ?').bind(normaliseEmail(request.fromEmail))
+    : env.DB.prepare('SELECT id, mailbox_id, email, display_name FROM address WHERE id = ?').bind(request.fromAddressId)
+  ).first<{ id: string; mailbox_id: string; email: string; display_name: string }>();
   if (!address) throw new HttpError(404, 'not_found', 'That From address does not exist.');
   assertCan(principal, address.mailbox_id, 'send');
 
@@ -130,8 +174,18 @@ export async function sendMessage(env: Env, principal: Principal, request: SendR
     references = [...original.refs.split(' ').filter(Boolean), ...(original.message_id ? [original.message_id] : [])].slice(-20);
   }
 
+  const replyTo = request.replyTo ? cleanPeople([{ name: '', email: request.replyTo }])[0]!.email : undefined;
+  const headers = cleanHeaders(request.headers);
+  const files = decodeFiles(request.attachments);
+
   const now = Date.now();
-  const id = newId(now);
+  // A caller's idempotency key becomes the message's own id, so a repeat finds the first message and sends nothing.
+  const key = typeof request.idempotencyKey === 'string' ? request.idempotencyKey.trim().slice(0, 256) : '';
+  const id = key ? await keyedId(principal.userId, key) : newId(now);
+  if (key) {
+    const first = await env.DB.prepare('SELECT thread_id, status FROM message WHERE id = ?').bind(id).first<{ thread_id: string; status: SendResult['status'] }>();
+    if (first) return { messageId: id, threadId: first.thread_id, status: first.status, dryRun: first.status === 'dry_run' };
+  }
   const undo = typeof request.undoSeconds === 'number' ? Math.min(30, Math.max(0, request.undoSeconds)) : 0;
   const sendAt = typeof request.scheduledFor === 'number' && request.scheduledFor > now + 5_000 ? request.scheduledFor : undo > 0 ? now + undo * 1000 : null;
   const scheduled = sendAt !== null;
@@ -146,7 +200,7 @@ export async function sendMessage(env: Env, principal: Principal, request: SendR
       draftOwnsThread = true;
     }
   }
-  const outgoing: Outgoing = { from: { name: address.display_name, email: address.email }, to, cc, bcc, subject, text, html: request.html, inReplyTo, references };
+  const outgoing: Outgoing = { from: { name: address.display_name, email: address.email }, to, cc, bcc, subject, text, html: request.html, inReplyTo, references, replyTo, headers };
 
   const statements: D1PreparedStatement[] = [];
   const snippet = snippetOf(text);
@@ -189,6 +243,13 @@ export async function sendMessage(env: Env, principal: Principal, request: SendR
       env.DB.prepare('DELETE FROM message WHERE id = ?').bind(draft.id),
     );
   }
+  for (const f of files) {
+    const fileId = newId();
+    const r2Key = `attachments/${id}/${fileId}`;
+    await env.MAIL.put(r2Key, f.bytes, { httpMetadata: { contentType: f.mime } });
+    statements.push(env.DB.prepare('INSERT INTO attachment (id, message_id, filename, mime, size, inline, r2_key) VALUES (?, ?, ?, ?, ?, 0, ?)').bind(fileId, id, f.filename, f.mime, f.bytes.byteLength, r2Key));
+  }
+  if (files.length) statements.push(env.DB.prepare('UPDATE thread SET has_attachment = 1 WHERE id = ?').bind(threadId));
   await env.DB.batch(statements);
 
   if (scheduled) {

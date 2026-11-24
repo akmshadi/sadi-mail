@@ -53,6 +53,45 @@ window.addEventListener('message', (e) => {
 });
 ```
 
+## 5. Renew The Token Without Reloading
+
+A token lives a few minutes. Before it runs out, sign a new one and hand it to the frame; the page is not reloaded, so an open draft is kept.
+
+```ts
+window.addEventListener('message', (e) => {
+  if (e.data?.type === 'sadi-mail:ready' && e.data.features?.includes('token-renewal')) canRenew = true;
+});
+
+frame.contentWindow.postMessage({ type: 'sadi-mail:token', token: freshToken }, 'https://mail.example.com');
+```
+
+## 6. Send Mail From Your Application
+
+Your server can send as any address the token's person has Send on. The message goes out the installation's usual way and is kept in that address's Sent folder.
+
+```ts
+await fetch('https://mail.example.com/api/send', {
+  method: 'POST',
+  headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json' },
+  body: JSON.stringify({
+    fromEmail: 'noreply@example.com',
+    to: [{ name: '', email: 'customer@example.org' }],
+    subject: 'Your receipt',
+    text: 'Thank you.',
+    html: '<p>Thank you.</p>',
+    replyTo: 'support@example.com',
+    headers: { 'List-Unsubscribe': '<https://example.com/u/1>' },
+    attachments: [{ filename: 'receipt.pdf', mime: 'application/pdf', contentBase64: '…' }],
+    idempotencyKey: 'receipt-42',
+  }),
+});
+```
+
+- `headers` accepts only `List-Unsubscribe`, `List-Unsubscribe-Post` and `X-*` names.
+- `attachments`: at most 10 files and 10 MB together.
+- `idempotencyKey`: sending the same key again returns the first result and sends nothing.
+- The answer's `status` is `sent`, or `dry_run` when the installation is not set to send.
+
 ## Roles And Permissions
 
 | Role | Can Do |
