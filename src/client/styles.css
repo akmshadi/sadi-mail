@@ -916,34 +916,30 @@ textarea.field { resize: vertical; }
   .addr-row .btn.small { min-height: 44px; }
 }
 
-/* ---------- Mailbox tiles in the rail: a small solid key in the mailbox colour ----------
-   Built from four parts so it reads as an object, not a flat chip: a lit face (gradient from the
-   colour's light side to its dark side), a top highlight, a darker side wall under the face, and a
-   soft coloured ground shadow. Pressing pushes the face down onto the wall. */
-.rail { gap: 10px; }
-.rail-btn.tile { --tile: #64748b; width: 38px; height: 40px; padding: 0; border-radius: 12px; background: transparent; overflow: visible; }
+/* ---------- Mailbox tiles in the rail: a flat square in the mailbox colour ----------
+   Flat on purpose: a soft tint of the mailbox colour with a 1px edge, the letter in that colour.
+   The selected mailbox is filled with its colour. No gradients, highlights or drop shadows. */
+.rail { gap: 8px; }
+.rail-btn.tile { --tile: #64748b; width: 36px; height: 36px; padding: 0; border-radius: 8px; background: transparent; overflow: visible; }
 .rail-btn.tile:hover { background: transparent; }
-.rail-btn.tile::before { content: ''; position: absolute; inset: 4px 0 0; border-radius: 12px; background: color-mix(in oklab, var(--tile) 62%, #0b1020); box-shadow: 0 6px 10px -5px color-mix(in oklab, var(--tile) 70%, transparent), 0 1px 2px rgba(15, 23, 42, 0.18); }
-.rail-btn.tile .face { position: absolute; inset: 0 0 4px; border-radius: 12px; display: flex; align-items: center; justify-content: center; color: #fff; font-size: 15px; font-weight: 700; letter-spacing: 0.01em; text-shadow: 0 1px 1px color-mix(in oklab, var(--tile) 45%, #000);
-  background: linear-gradient(155deg, color-mix(in oklab, var(--tile) 78%, #fff) 0%, var(--tile) 46%, color-mix(in oklab, var(--tile) 84%, #0b1020) 100%);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.5), inset 0 -1px 0 rgba(0, 0, 0, 0.14), inset 0 0 0 1px color-mix(in oklab, var(--tile) 70%, #0b1020);
-  transition: transform var(--dur-press) var(--ease-out), filter var(--dur-hover) var(--ease-out); }
-.rail-btn.tile .face::after { content: ''; position: absolute; inset: 1px 1px 52%; border-radius: 11px 11px 14px 14px / 11px 11px 8px 8px; background: linear-gradient(180deg, rgba(255, 255, 255, 0.28), rgba(255, 255, 255, 0)); pointer-events: none; }
-.rail-btn.tile:hover .face { transform: translateY(-1px); filter: brightness(1.06); }
-.rail-btn.tile:active { transform: none; }
-.rail-btn.tile:active .face { transform: translateY(3px); filter: brightness(0.97); }
+.rail-btn.tile::before { content: none; }
+.rail-btn.tile .face { position: absolute; inset: 0; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 600;
+  color: color-mix(in oklab, var(--tile) 82%, var(--ink));
+  background: color-mix(in oklab, var(--tile) 12%, var(--raised));
+  border: 1px solid color-mix(in oklab, var(--tile) 28%, var(--edge));
+  transition: background-color var(--dur-hover) var(--ease-out), color var(--dur-hover) var(--ease-out), border-color var(--dur-hover) var(--ease-out); }
+.rail-btn.tile .face::after { content: none; }
+.rail-btn.tile:hover .face { background: color-mix(in oklab, var(--tile) 20%, var(--raised)); }
+.rail-btn.tile:active .face { background: color-mix(in oklab, var(--tile) 26%, var(--raised)); }
 .rail-btn.tile .badge { right: -6px; top: -6px; z-index: 1; }
-/* The All Mailboxes tile is the same object in the surface colour. */
-.rail-btn.tile.all::before { background: var(--edge-hover); box-shadow: 0 6px 10px -6px rgba(15, 23, 42, 0.35), 0 1px 2px rgba(15, 23, 42, 0.12); }
-.rail-btn.tile.all .face { color: var(--ink-2); text-shadow: none; background: linear-gradient(155deg, var(--raised), var(--subtle)); box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.7), inset 0 0 0 1px var(--edge); }
-.rail-btn.tile.all .face::after { display: none; }
-/* Selected: the tile sits pressed in, with a ring in its own colour, beside the accent marker. */
+/* All Mailboxes: the same square in neutral colours. */
+.rail-btn.tile.all .face { color: var(--ink-2); background: var(--raised); border-color: var(--edge); }
+.rail-btn.tile.all:hover .face { background: var(--hover); }
+/* Selected: filled with the mailbox colour, beside the accent marker. */
 .rail-slot.active .rail-btn.tile { background: transparent; box-shadow: none; }
-.rail-slot.active .rail-btn.tile .face { transform: translateY(2px); box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.5), inset 0 0 0 1px color-mix(in oklab, var(--tile) 70%, #0b1020), 0 0 0 2px var(--bg), 0 0 0 4px color-mix(in oklab, var(--tile) 75%, transparent); }
-.rail-slot.active .rail-btn.tile.all .face { color: var(--accent-text); box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.7), inset 0 0 0 1px var(--edge), 0 0 0 2px var(--bg), 0 0 0 4px color-mix(in oklab, var(--accent) 60%, transparent); }
-.rail-slot::before { top: 10px; }
-[data-theme='dark'] .rail-btn.tile.all .face { box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08), inset 0 0 0 1px var(--edge); }
-[data-theme='dark'] .rail-btn.tile.all::before { background: #05070b; }
+.rail-slot.active .rail-btn.tile .face { color: #fff; background: var(--tile); border-color: var(--tile); }
+.rail-slot.active .rail-btn.tile.all .face { color: var(--accent-text); background: var(--accent-soft); border-color: color-mix(in oklab, var(--accent) 40%, var(--edge)); }
+.rail-slot::before { top: 8px; }
 @media (prefers-reduced-motion: reduce) { .rail-btn.tile .face { transition: none; } }
 
 /* ---------- Your Profile: the information card ---------- */
