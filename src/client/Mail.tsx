@@ -236,9 +236,30 @@ export function ThreadList({ relay, onOpen }: { relay: MailStore; onOpen: (id: s
 
 const FRAME_STYLE = `<meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src https: data:; style-src 'unsafe-inline'; font-src data:"><base target="_blank"><style>html{color-scheme:light}body{margin:0;padding:0;font:15px/1.6 system-ui,-apple-system,'Segoe UI',sans-serif;color:#1f2937;background:#fff;overflow-wrap:anywhere}img{max-width:100%;height:auto}table{max-width:100%}a{color:#4338ca}img[data-sadi-mail-blocked][width="1"],img[data-sadi-mail-blocked][height="1"],img[data-sadi-mail-blocked][width="0"]{display:none!important}img[data-sadi-mail-blocked]{display:inline-block;min-width:24px;min-height:24px;background:#f1f5f9;border:1px dashed #cbd5e1;border-radius:4px}blockquote{margin:0 0 0 8px;padding-left:12px;border-left:2px solid #e5eaf2;color:#475569}</style>`;
 
+/** In the dark theme a simple message (no colours of its own) is shown dark too, instead of as a bright white box. */
+const DARK_FRAME_STYLE = `<style>html{color-scheme:dark}body{color:#e5e7eb;background:#16191f}a{color:#aab1fb}blockquote{border-left-color:#2a2f3a;color:#9aa3b2}</style>`;
+
+/** A designed email sets its own colours or layout tables; those keep their white page in every theme. */
+function hasOwnColours(html: string): boolean {
+  return /bgcolor\s*=|background(-color)?\s*:|<table[\s>]|\scolor\s*:\s*#(?:f{3}|f{6})\b/i.test(html);
+}
+
+/** Follows the theme the app sets on <html data-theme>. */
+function useDarkTheme(): boolean {
+  const [dark, setDark] = useState(() => document.documentElement.dataset.theme === 'dark');
+  useEffect(() => {
+    const root = document.documentElement;
+    const observer = new MutationObserver(() => setDark(root.dataset.theme === 'dark'));
+    observer.observe(root, { attributes: true, attributeFilter: ['data-theme'] });
+    return () => observer.disconnect();
+  }, []);
+  return dark;
+}
+
 /** Message HTML runs in a frame that cannot execute scripts; its height follows its content. */
 function HtmlBody({ html }: { html: string }) {
   const ref = useRef<HTMLIFrameElement>(null);
+  const dark = useDarkTheme() && !hasOwnColours(html);
   const [height, setHeight] = useState(120);
   useEffect(() => {
     const frame = ref.current;
@@ -268,8 +289,8 @@ function HtmlBody({ html }: { html: string }) {
       frame.removeEventListener('load', onLoad);
       observer?.disconnect();
     };
-  }, [html]);
-  return <iframe ref={ref} className="msg-frame" title="Message Content" sandbox="allow-same-origin allow-popups allow-popups-to-escape-sandbox" srcDoc={FRAME_STYLE + html} style={{ height }} />;
+  }, [html, dark]);
+  return <iframe ref={ref} className={`msg-frame${dark ? ' dark' : ''}`} title="Message Content" sandbox="allow-same-origin allow-popups allow-popups-to-escape-sandbox" srcDoc={FRAME_STYLE + (dark ? DARK_FRAME_STYLE : '') + html} style={{ height }} />;
 }
 
 function authInfo(m: MessageDetail): { icon: 'shield' | 'shieldX' | 'shieldOff' | 'send'; cls: string; label: string } {

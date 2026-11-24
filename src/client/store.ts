@@ -45,6 +45,7 @@ export function useRelay() {
   const moreBusy = useRef(false);
   const listKey = `${view}|${scope.mailboxId ?? ''}|${scope.addressId ?? ''}|${labelId ?? ''}|${section}|${filters.after}|${filters.before}|${filters.from}|${filters.files}`;
   const liveKey = useRef(listKey);
+  const listSeq = useRef(0);
   liveKey.current = listKey;
 
   const notify = useCallback((next: Toast) => {
@@ -78,6 +79,9 @@ export function useRelay() {
   const loadList = useCallback(
     async (quiet = false) => {
       const key = liveKey.current;
+      // Refreshes overlap (after a send, every 20 s, on focus) and can answer out of order. Only the newest request
+      // may change the list, or an older answer lands last and the list and its counts jump back and forth.
+      const seq = ++listSeq.current;
       if (!quiet) setListLoad('loading');
       try {
         const [page, c] = await Promise.all([
@@ -85,6 +89,7 @@ export function useRelay() {
           api.get<typeof counts>(`/counts${scope.mailboxId ? `?mailbox=${scope.mailboxId}` : ''}`),
         ]);
         if (key !== liveKey.current) return; // the person moved on while this was loading
+        if (seq !== listSeq.current) return; // a newer refresh was started; its answer wins
         if (quiet) {
           // A background refresh renews the newest page and keeps the older pages already scrolled into view.
           const oldest = page.data[page.data.length - 1];
@@ -104,7 +109,7 @@ export function useRelay() {
         setCounts(c);
         setListLoad('ready');
       } catch (err) {
-        if (key !== liveKey.current) return;
+        if (key !== liveKey.current || seq !== listSeq.current) return;
         if (!quiet) {
           setListError(message(err));
           setListLoad('error');

@@ -574,6 +574,7 @@ textarea.field { resize: vertical; }
 /* A designed HTML message gets the whole reading column, not the indented text column. */
 .msg-body:has(.msg-frame) { padding-left: 0; }
 .msg-frame { overflow: hidden; }
+.msg-frame.dark { background: #16191f; }
 
 /* Select every conversation on the page that is showing. */
 .select-all { width: 30px; height: 30px; flex: 0 0 auto; border: 0; border-radius: 7px; background: transparent; padding: 0; display: inline-flex; align-items: center; justify-content: center; margin-right: 4px; }
