@@ -140,6 +140,13 @@ export function ComposePage({ relay, state, onClose, onOpenSettings, onEditDraft
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const [from, setFrom] = useState(initialFrom);
+  // With a mailbox chosen, From offers that mailbox's addresses only. The address already in use always stays listed.
+  const fromChoices = useMemo(() => {
+    const id = relay.scope.mailboxId;
+    if (!id) return sendable;
+    const own = sendable.filter((a) => a.mailboxId === id || a.id === from);
+    return own.length ? own : sendable;
+  }, [sendable, relay.scope.mailboxId, from]);
   const fromAddress = sendable.find((a) => a.id === from);
   const [to, setTo] = useState<Person[]>(() => {
     if (draft) return draft.to;
@@ -592,8 +599,8 @@ export function ComposePage({ relay, state, onClose, onOpenSettings, onEditDraft
           <div className="cmp-row">
             <label htmlFor="cmp-from">From</label>
             <select id="cmp-from" value={from} onChange={(e) => changeFrom(e.target.value)}>
-              {sendable.map((a) => (
-                <option key={a.id} value={a.id}>{a.displayName ? `${a.displayName} <${a.email}>` : a.email}{relay.mailboxes.length > 1 ? ` · ${a.mailbox}` : ''}</option>
+              {fromChoices.map((a) => (
+                <option key={a.id} value={a.id}>{a.displayName ? `${a.displayName} <${a.email}>` : a.email}{relay.mailboxes.length > 1 && !relay.scope.mailboxId ? ` · ${a.mailbox}` : ''}</option>
               ))}
             </select>
           </div>

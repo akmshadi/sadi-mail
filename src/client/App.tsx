@@ -58,10 +58,15 @@ const NAV: { view: View; icon: IconName }[] = [
 const HOST_TOKENS = new Set(['--bg', '--surface', '--reading', '--panel', '--raised', '--line', '--ink', '--ink-2', '--ink-3', '--accent', '--accent-hover', '--on-accent', '--accent-soft', '--accent-text', '--sel', '--font']);
 
 function ScopeMenu({ relay, onPick }: { relay: MailStore; onPick: (s: Scope) => void }) {
-  const { scope, mailboxes } = relay;
+  const { scope } = relay;
+  // With a mailbox chosen, the menu lists that mailbox's addresses only; the tiles on the rail change mailbox.
+  // On a phone the rail is hidden, so the way back to every mailbox stays in the menu.
+  const chosen = relay.mailboxes.find((m) => m.id === scope.mailboxId);
+  const mailboxes = chosen ? [chosen] : relay.mailboxes;
+  const railHidden = window.matchMedia('(max-width: 760px)').matches;
   return (
-    <div className="menu" role="listbox" aria-label="Choose Mailbox Or Address">
-      <button type="button" role="option" aria-selected={!scope.mailboxId} onClick={() => onPick({ mailboxId: null, addressId: null })}><Icon name="layers" size={15} />All Mailboxes</button>
+    <div className="menu" role="listbox" aria-label={chosen ? `Choose An Address In ${chosen.name}` : 'Choose Mailbox Or Address'}>
+      {(!chosen || railHidden) && <button type="button" role="option" aria-selected={!scope.mailboxId} onClick={() => onPick({ mailboxId: null, addressId: null })}><Icon name="layers" size={15} />All Mailboxes</button>}
       {mailboxes.map((m) => (
         <div key={m.id} style={{ display: 'contents' }}>
           <div className="menu-label">{m.name}</div>
