@@ -90,6 +90,31 @@ describe('receiving', () => {
     expect(detail.body.hasAttachment).toBe(true);
   });
 
+  it('copies the files onto a forward, and leaves the original alone when one is removed', async () => {
+    const result = await deliver({ from: 'a@x.example', to: 'hello@fieldwork.example', subject: 'Invoice to pass on', body: 'see attached', attachment: { filename: 'INV-7.pdf', content: '%PDF-fake' } });
+    if (result.outcome !== 'stored') throw new Error('not stored');
+    const original = (await call<ThreadDetail>(`/api/threads/${result.threadId}`)).body.messages[0]!;
+    const boot = await call<Bootstrap>('/api/bootstrap');
+    const from = boot.body.mailboxes.flatMap((m) => m.addresses).find((a) => a.email === 'hello@fieldwork.example')!;
+    const base = { fromAddressId: from.id, to: [{ name: '', email: 'books@x.example' }], cc: [], bcc: [], subject: 'Fwd: Invoice to pass on', text: 'For the books.', inReplyToMessageId: original.id };
+
+    const made = await call<{ id: string; attachments?: { id: string; filename: string; size: number }[] }>('/api/drafts', post({ ...base, mode: 'forward' }));
+    expect(made.body.attachments).toHaveLength(1);
+    expect(made.body.attachments![0]).toMatchObject({ filename: 'INV-7.pdf', size: 9 });
+    expect(made.body.attachments![0]!.id).not.toBe(original.attachments[0]!.id);
+    // Saving the draft again does not copy the files a second time.
+    const again = await call<{ id: string; attachments?: unknown[] }>('/api/drafts', post({ ...base, id: made.body.id, mode: 'forward' }));
+    expect(again.body.attachments).toBeUndefined();
+    // A reply does not carry the files.
+    const reply = await call<{ id: string; attachments?: unknown[] }>('/api/drafts', post({ ...base, mode: 'reply' }));
+    expect(reply.body.attachments).toBeUndefined();
+
+    await call(`/api/drafts/${made.body.id}/attachments/${made.body.attachments![0]!.id}`, { method: 'DELETE' });
+    const kept = await env.DB.prepare('SELECT r2_key FROM attachment WHERE id = ?').bind(original.attachments[0]!.id).first<{ r2_key: string }>();
+    expect(await (await env.MAIL.get(kept!.r2_key))?.text()).toBe('%PDF-fake');
+    expect((await call<{ attachments: unknown[] }>(`/api/drafts/${made.body.id}`)).body.attachments).toHaveLength(0);
+  });
+
   it('flags a message that failed DMARC', async () => {
     const result = await deliver({ from: 'hr@lookalike.example', to: 'hello@fieldwork.example', subject: 'Verify payroll', body: 'click', auth: 'spf=fail; dkim=none; dmarc=fail' });
     if (result.outcome !== 'stored') throw new Error('not stored');

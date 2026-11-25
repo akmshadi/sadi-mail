@@ -43,7 +43,7 @@ api.use('*', async (c, next) => {
 interface ThreadRow {
   id: string; mailbox_id: string; address_id: string; address_email: string; subject: string; folder: ThreadSummary['folder']; last_at: number;
   last_from_name: string; last_from_email: string; snippet: string; message_count: number; unread_count: number; has_attachment: number;
-  starred: number; flagged_auth: number; is_bulk: number; ai_category: string | null; ai_priority: number; follow_up: number; snoozed_until: number | null; labels: string | null; section: string; files: string | null; file_count: number; last_direction: string | null;
+  starred: number; flagged_auth: number; is_bulk: number; ai_category: string | null; ai_priority: number; follow_up: number; snoozed_until: number | null; labels: string | null; section: string; files: string | null; file_count: number; last_direction: string | null; last_to: string | null;
 }
 
 const THREAD_COLUMNS = `t.id, t.mailbox_id, t.address_id, a.email AS address_email, t.subject, t.folder, t.last_at, t.last_from_name, t.last_from_email,
@@ -51,7 +51,17 @@ const THREAD_COLUMNS = `t.id, t.mailbox_id, t.address_id, a.email AS address_ema
   (SELECT json_group_array(filename) FROM (SELECT a.filename FROM attachment a JOIN message am ON am.id = a.message_id WHERE am.thread_id = t.id AND a.inline = 0 AND am.status != 'draft' ORDER BY am.at DESC, a.id LIMIT 3)) AS files,
   (SELECT COUNT(*) FROM attachment a JOIN message am ON am.id = a.message_id WHERE am.thread_id = t.id AND a.inline = 0 AND am.status != 'draft') AS file_count,
   (SELECT json_group_array(json_object('id', l.id, 'name', l.name, 'color', l.color)) FROM thread_label tl JOIN label l ON l.id = tl.label_id WHERE tl.thread_id = t.id) AS labels,
-  (SELECT direction FROM message m WHERE m.thread_id = t.id ORDER BY m.at DESC LIMIT 1) AS last_direction`;
+  (SELECT direction FROM message m WHERE m.thread_id = t.id ORDER BY m.at DESC LIMIT 1) AS last_direction,
+  (SELECT to_json FROM message m WHERE m.thread_id = t.id AND m.direction = 'out' ORDER BY m.at DESC LIMIT 1) AS last_to`;
+
+function sentTo(json: string | null): Person[] {
+  if (!json) return [];
+  try {
+    return (JSON.parse(json) as Person[]).slice(0, 3).map((x) => ({ name: String(x.name ?? ''), email: String(x.email ?? '') }));
+  } catch {
+    return [];
+  }
+}
 
 function toSummary(r: ThreadRow): ThreadSummary {
   return {
@@ -62,6 +72,7 @@ function toSummary(r: ThreadRow): ThreadSummary {
     priority: !!r.ai_priority, category: r.ai_category, followUp: !!r.follow_up,
     section: (isSection(r.section) ? r.section : 'primary'),
     files: r.files ? (JSON.parse(r.files) as string[]) : [], fileCount: r.file_count ?? 0,
+    sentTo: sentTo(r.last_to),
     labels: r.labels ? (JSON.parse(r.labels) as ThreadSummary['labels']) : [], snoozedUntil: r.snoozed_until && r.snoozed_until > Date.now() ? r.snoozed_until : null,
   };
 }

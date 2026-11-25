@@ -27,7 +27,9 @@ function morph(update: () => void, kind: 'page' | 'theme' = 'page') {
   }
   root.dataset.vt = kind;
   const t = document.startViewTransition(() => flushSync(update));
-  void t.finished.finally(() => { if (root.dataset.vt === kind) delete root.dataset.vt; });
+  // A second change that starts before this one has drawn skips it. That is expected, not an error.
+  t.ready.catch(() => undefined);
+  void t.finished.finally(() => { if (root.dataset.vt === kind) delete root.dataset.vt; }).catch(() => undefined);
 }
 
 function initialTheme(): Theme {

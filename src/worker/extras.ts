@@ -46,6 +46,28 @@ async function filesOf(env: Env, messageId: string): Promise<AttachmentInfo[]> {
   return rows.results.map((a) => ({ id: a.id, filename: a.filename, mime: a.mime, size: a.size, inline: !!a.inline }));
 }
 
+/**
+ * Forwarding a message sends its files too. Each file is copied, so the new message owns its own:
+ * removing one from the draft, or deleting the draft, never touches the original.
+ */
+async function carryFiles(env: Env, fromMessageId: string, draftId: string): Promise<AttachmentInfo[]> {
+  const rows = await env.DB.prepare('SELECT filename, mime, size, r2_key FROM attachment WHERE message_id = ? AND inline = 0 ORDER BY id').bind(fromMessageId).all<{ filename: string; mime: string; size: number; r2_key: string }>();
+  const carried: AttachmentInfo[] = [];
+  let total = 0;
+  for (const f of rows.results) {
+    if (f.size > MAX_FILE || total + f.size > MAX_TOTAL) continue;
+    const object = await env.MAIL.get(f.r2_key);
+    if (!object) continue;
+    const id = newId();
+    const key = `att/${draftId}/${id}`;
+    await env.MAIL.put(key, await object.arrayBuffer(), { httpMetadata: { contentType: f.mime } });
+    await env.DB.prepare('INSERT INTO attachment (id, message_id, filename, mime, size, inline, r2_key) VALUES (?, ?, ?, ?, ?, 0, ?)').bind(id, draftId, f.filename, f.mime, f.size, key).run();
+    total += f.size;
+    carried.push({ id, filename: f.filename, mime: f.mime, size: f.size, inline: false });
+  }
+  return carried;
+}
+
 export function registerExtras(api: App): void {
   // ---------- drafts ----------
 
@@ -112,7 +134,8 @@ export function registerExtras(api: App): void {
       ).bind(id, threadId, address.mailbox_id, address.id, inReplyTo, refs, address.display_name, address.email, JSON.stringify(to), JSON.stringify(copies), subject, snippet, text, html, now, p.userId, replyToId, mode, design),
     );
     await c.env.DB.batch(statements);
-    return c.json({ id, threadId, savedAt: now });
+    const attachments = mode === 'forward' && replyToId ? await carryFiles(c.env, replyToId, id) : [];
+    return c.json({ id, threadId, savedAt: now, ...(attachments.length ? { attachments } : {}) });
   });
 
   api.get('/drafts/:id', async (c) => {

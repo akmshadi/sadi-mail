@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { MessageDetail, Person, ThreadDetail } from '../shared/types';
 import { RequestError, api } from './api';
-import { longTime } from './format';
+import { fullTime } from './format';
 import { Icon } from './icons';
 import type { ComposeMode } from './Mail';
 import type { MailStore } from './store';
@@ -14,12 +14,15 @@ export interface ReplyRequest {
   nonce: number;
 }
 
+/** The last request acted on. It outlives the box, which is built again whenever the reading pane is. */
+let answered = 0;
+
 const REWRITES = [['shorter', 'Shorter'], ['warmer', 'Warmer'], ['formal', 'More Formal'], ['grammar', 'Fix Grammar']] as const;
 const failure = (err: unknown) => (err instanceof RequestError ? err.message : 'That did not work. Try again.');
 
 function quoteOf(m: MessageDetail): string {
   const who = m.from.name ? `${m.from.name} <${m.from.email}>` : m.from.email;
-  return `On ${longTime(m.at)}, ${who} wrote:\n${m.text.trim().split('\n').map((line) => `> ${line}`).join('\n')}`;
+  return `On ${fullTime(m.at)}, ${who} wrote:\n${m.text.trim().split('\n').map((line) => `> ${line}`).join('\n')}`;
 }
 
 /**
@@ -60,7 +63,10 @@ export function InlineReply({ relay, detail, target, request, onFull, onEditDraf
   }, [detail.id]);
 
   useEffect(() => {
-    if (!request) return;
+    // A request is answered once. Without this, coming back from the compose page, which builds this box
+    // again, would open a reply on whichever conversation is read next.
+    if (!request || request.nonce === answered || Date.now() - request.nonce > 10_000) return;
+    answered = request.nonce;
     setMode(request.mode === 'replyAll' && canReplyAll ? 'replyAll' : 'reply');
     if (request.seed !== undefined) setText(request.seed);
     setOpen(true);
@@ -202,7 +208,7 @@ export function InlineReply({ relay, detail, target, request, onFull, onEditDraf
           <span className="fine">The original message is quoted below your reply{from?.signature.trim() ? ', after your signature' : ''}.</span>
           <span className="grow" />
           {relay.boot?.sendMode !== 'cloudflare' && !relay.boot?.serverSenders.includes(from?.email ?? '') && <span className="pill warn">Dry Run</span>}
-          <button type="button" className="btn primary" disabled={busy || !!aiBusy} aria-busy={busy} onClick={() => void send()}>{busy ? 'Sending…' : 'Send'}<span className="mono" style={{ fontSize: 11, fontWeight: 500, opacity: 0.75 }}>⌘↵</span></button>
+          <button type="button" className="btn primary" disabled={busy || !!aiBusy} aria-busy={busy} onClick={() => void send()}>{busy ? 'Sending…' : 'Send'}<span className="mono key-hint" style={{ fontSize: 11, fontWeight: 500, opacity: 0.75 }}>⌘↵</span></button>
         </footer>
       </section>
     </div>

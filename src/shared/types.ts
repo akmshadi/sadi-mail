@@ -110,6 +110,8 @@ export interface ThreadSummary {
   followUp: boolean;
   labels: LabelInfo[];
   snoozedUntil: number | null;
+  /** Who the latest message written here went to, at most three people. Empty when nothing was written here. */
+  sentTo: Person[];
   /** Names of up to three attached files, and how many there are in all. */
   files: string[];
   fileCount: number;

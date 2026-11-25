@@ -66,8 +66,11 @@ function EmptyList({ relay }: { relay: MailStore }) {
   );
 }
 
-function Row({ thread, current, showAddress, onPick, picked, onTogglePick }: { thread: ThreadSummary; current: boolean; showAddress: boolean; onPick: () => void; picked: boolean; onTogglePick: () => void }) {
+function Row({ thread, current, showAddress, outgoing, onPick, picked, onTogglePick }: { thread: ThreadSummary; current: boolean; showAddress: boolean; outgoing: boolean; onPick: () => void; picked: boolean; onTogglePick: () => void }) {
   const ref = useRef<HTMLButtonElement>(null);
+  // In Sent, Scheduled and Drafts the question is who it went to, not which of your addresses wrote it.
+  const first = outgoing ? thread.sentTo[0] : undefined;
+  const who = first ? `To ${first.name || first.email}${thread.sentTo.length > 1 ? `, ${thread.sentTo[1]!.name || thread.sentTo[1]!.email}` : ''}` : thread.fromName || thread.fromEmail;
   useEffect(() => {
     if (current) ref.current?.scrollIntoView({ block: 'nearest' });
   }, [current]);
@@ -75,10 +78,10 @@ function Row({ thread, current, showAddress, onPick, picked, onTogglePick }: { t
     <li className={`row-wrap${picked ? ' picked' : ''}`}>
       <button type="button" className="row-check" role="checkbox" aria-checked={picked} aria-label={`Select Conversation: ${thread.subject}`} onClick={onTogglePick}><i>{picked && <Icon name="check" size={11} weight={3} />}</i></button>
       <button ref={ref} type="button" className={`row-btn${thread.unread ? ' unread' : ''}`} aria-current={current} onClick={onPick}>
-        <Avatar name={thread.fromName} email={thread.fromEmail} />
+        <Avatar name={first ? first.name : thread.fromName} email={first ? first.email : thread.fromEmail} />
         <span className="row-main">
           <span className="row-top">
-            <span className="row-from truncate">{thread.fromName || thread.fromEmail}{thread.messageCount > 1 && <span className="num" style={{ color: 'var(--ink-3)', fontWeight: 500 }}> {thread.messageCount}</span>}</span>
+            <span className="row-from truncate">{who}{thread.messageCount > 1 && <span className="num" style={{ color: 'var(--ink-3)', fontWeight: 500 }}> {thread.messageCount}</span>}</span>
             <span className="row-time num">{shortTime(thread.lastAt)}</span>
           </span>
           <span className="row-subject truncate">{thread.subject}</span>
@@ -234,7 +237,7 @@ export function ThreadList({ relay, onOpen }: { relay: MailStore; onOpen: (id: s
                 {head && (
                   <li className="group" aria-hidden="true"><span className="grow">{g}</span><span className="n num">{groupCounts.get(g)}</span></li>
                 )}
-                <Row thread={t} current={relay.selectedId === t.id} showAddress={!scope.addressId} onPick={() => onOpen(t.id)} picked={relay.picked.has(t.id)} onTogglePick={() => relay.togglePick(t.id)} />
+                <Row thread={t} current={relay.selectedId === t.id} showAddress={!scope.addressId} outgoing={view === 'sent' || view === 'scheduled' || view === 'drafts'} onPick={() => onOpen(t.id)} picked={relay.picked.has(t.id)} onTogglePick={() => relay.togglePick(t.id)} />
               </Fragment>
             );
           })}
@@ -490,7 +493,11 @@ export function Reader({ relay, open, onBack, onCompose, onEditDraft, onToggleCo
             ) : (
               <button type="button" className="icon-btn" aria-label={detail.folder === 'spam' ? 'Not Spam' : 'Move To Inbox'} title={detail.folder === 'spam' ? 'Not Spam: Move To Inbox And Trust This Sender' : 'Move To Inbox'} disabled={!canEdit} onClick={() => void relay.act(detail, 'inbox')}><Icon name="inbox" size={17} /></button>
             )}
-            <button type="button" className="icon-btn" aria-label="Move To Trash" title="Trash (#)" disabled={!canDelete || detail.folder === 'trash'} onClick={() => void relay.act(detail, 'trash')}><Icon name="trash" size={17} /></button>
+            {detail.folder === 'trash' ? (
+              <button type="button" className="icon-btn" aria-label="Delete Forever" title="Delete Forever" disabled={!canDelete} onClick={() => void relay.deleteForever(detail)}><Icon name="trash" size={17} /></button>
+            ) : (
+              <button type="button" className="icon-btn" aria-label="Move To Trash" title="Trash (#)" disabled={!canDelete} onClick={() => void relay.act(detail, 'trash')}><Icon name="trash" size={17} /></button>
+            )}
             <Pop label="Snooze" title="Snooze" icon="clock" disabled={!canEdit || detail.folder !== 'inbox'}>
               {(close) => (
                 <>

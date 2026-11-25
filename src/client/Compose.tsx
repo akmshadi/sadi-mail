@@ -5,7 +5,7 @@ import type { AddressInfo, AttachmentInfo, DraftDetail, MessageDetail, Person, T
 import { type EmailDesign, MAX_BLOCKS, designToText, instantiate, isStarter, newBlock, parseDesign, renderDesign, starter } from '../shared/design';
 import { RequestError, api } from './api';
 import { Designer } from './Designer';
-import { bytes, longTime, tomorrowMorning } from './format';
+import { bytes, fullTime, longTime, tomorrowMorning } from './format';
 import { Icon } from './icons';
 import { Avatar, type ComposeMode } from './Mail';
 import type { MailStore } from './store';
@@ -26,7 +26,7 @@ const textToHtml = (text: string) => text.split('\n').map((line) => `<div>${esc(
 
 function quoteHtml(m: MessageDetail): string {
   const who = m.from.name ? `${m.from.name} &lt;${esc(m.from.email)}&gt;` : esc(m.from.email);
-  return `<div data-quote="1"><div>On ${esc(longTime(m.at))}, ${who} wrote:</div><blockquote>${textToHtml(m.text.trim())}</blockquote></div>`;
+  return `<div data-quote="1"><div>On ${esc(fullTime(m.at))}, ${who} wrote:</div><blockquote>${textToHtml(m.text.trim())}</blockquote></div>`;
 }
 
 function People({ label, people, setPeople, autoFocus, trailing }: { label: string; people: Person[]; setPeople: (p: Person[]) => void; autoFocus?: boolean; trailing?: React.ReactNode }) {
@@ -386,11 +386,16 @@ export function ComposePage({ relay, state, onClose, onOpenSettings, onEditDraft
       ? { text: designToText(designing), html: renderDesign(designing), design: JSON.stringify(designing) }
       : { text: el.innerText.replace(/\n{3,}/g, '\n\n').trim(), html: el.innerHTML };
     const run = api
-      .post<{ id: string; savedAt: number }>('/drafts', {
+      .post<{ id: string; savedAt: number; attachments?: AttachmentInfo[] }>('/drafts', {
         id: draftId.current ?? undefined, fromAddressId: from, to, cc, bcc, subject, ...content,
         inReplyToMessageId: message?.id, mode,
       })
-      .then((r) => { draftId.current = r.id; setSavedAt(r.savedAt); setDirty(false); return r.id; });
+      .then((r) => {
+        draftId.current = r.id; setSavedAt(r.savedAt); setDirty(false);
+        // A new forward comes back with the original's files already copied onto it.
+        if (r.attachments?.length) setFiles((prev) => [...prev, ...r.attachments!.filter((f) => !prev.some((x) => x.id === f.id))]);
+        return r.id;
+      });
     saving.current = run;
     try {
       return await run;
@@ -398,6 +403,11 @@ export function ComposePage({ relay, state, onClose, onOpenSettings, onEditDraft
       saving.current = null;
     }
   };
+  // A forward of a message with files is saved at once, so the files show as attached before anything is typed.
+  useEffect(() => {
+    if (!draft && mode === 'forward' && message?.attachments.some((f) => !f.inline)) void save().catch(() => undefined);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
   // Save a moment after the person stops typing.
   useEffect(() => {
     if (rev === 0) return;
@@ -431,13 +441,13 @@ export function ComposePage({ relay, state, onClose, onOpenSettings, onEditDraft
     onClose();
   };
 
-  const attach = async (list: FileList | null) => {
-    if (!list || list.length === 0) return;
+  const attach = async (list: File[]) => {
+    if (list.length === 0) return;
     setError('');
     try {
       const id = (await save()) ?? draftId.current;
       if (!id) return setError('Choose an address to send from before attaching a file.');
-      for (const file of [...list]) {
+      for (const file of list) {
         if (file.size > 10 * 1024 * 1024) { setError(`${file.name} is over 10 MB and was not attached.`); continue; }
         setUploading((n) => n + 1);
         try {
@@ -579,7 +589,7 @@ export function ComposePage({ relay, state, onClose, onOpenSettings, onEditDraft
           {dryRun && <span className="pill warn" title="SEND_MODE is dry-run. Messages are stored in Sent and never leave this server.">Dry Run: Nothing Is Sent</span>}
           <button type="button" className="icon-btn" aria-label="Discard Message" title="Discard" onClick={() => void discard()}><Icon name="trash" /></button>
           <span className="split">
-            <button type="button" className="btn primary" disabled={busy} aria-busy={busy} onClick={() => void submit()}>{busy ? 'Sending…' : 'Send'}<span className="mono" style={{ fontSize: 11, fontWeight: 500, opacity: 0.75 }}>⌘↵</span></button>
+            <button type="button" className="btn primary" disabled={busy} aria-busy={busy} onClick={() => void submit()}>{busy ? 'Sending…' : 'Send'}<span className="mono key-hint" style={{ fontSize: 11, fontWeight: 500, opacity: 0.75 }}>⌘↵</span></button>
             <button type="button" className="btn primary" aria-label="Schedule Send" aria-expanded={menu} disabled={busy} onClick={() => setMenu(!menu)}><Icon name="down" size={13} weight={2.4} /></button>
             {menu && (
               <div className="menu" role="menu">
@@ -620,7 +630,7 @@ export function ComposePage({ relay, state, onClose, onOpenSettings, onEditDraft
           {bodyFormat === 'rich' && <button type="button" className="icon-btn" aria-label="Add Link" title="Add Link" onMouseDown={(e) => e.preventDefault()} onClick={addLink}><Icon name="link" size={16} weight={1.8} /></button>}
           {bodyFormat === 'rich' && <button type="button" className="btn small ghost hide-phone" onMouseDown={(e) => e.preventDefault()} onClick={() => format('removeFormat')}>Clear Formatting</button>}
           {bodyFormat === 'rich' && <span style={{ width: 1, height: 18, background: 'var(--line)', margin: '0 6px' }} />}
-          <input ref={fileInput} type="file" multiple hidden onChange={(e) => { void attach(e.target.files); e.target.value = ''; }} />
+          <input ref={fileInput} type="file" multiple hidden onChange={(e) => { const picked = [...(e.target.files ?? [])]; e.target.value = ''; void attach(picked); }} />
           <button type="button" className="icon-btn" aria-label="Attach Files" title="Attach Files" onClick={() => fileInput.current?.click()}><Icon name="clip" size={16} weight={1.8} /></button>
           <span className="pop">
             <button type="button" className="btn small ghost" aria-haspopup="menu" aria-expanded={tplOpen} onClick={openTemplates}>Templates</button>

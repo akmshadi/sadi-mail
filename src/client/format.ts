@@ -10,8 +10,11 @@ function startOfDay(ms: number): number {
 export function shortTime(ms: number, now: number = Date.now()): string {
   const days = Math.round((startOfDay(now) - startOfDay(ms)) / DAY);
   const d = new Date(ms);
-  if (days <= 0) return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
+  if (days === 0) return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
+  if (days === -1) return 'Tomorrow';
   if (days === 1) return 'Yesterday';
+  // A later day (a scheduled send, a snooze) is a date, never a bare time that reads as today.
+  if (days < 0) return d.toLocaleDateString([], { day: 'numeric', month: 'short', year: d.getFullYear() === new Date(now).getFullYear() ? undefined : 'numeric' });
   if (days < 7) return d.toLocaleDateString([], { weekday: 'short' });
   if (d.getFullYear() === new Date(now).getFullYear()) return d.toLocaleDateString([], { day: 'numeric', month: 'short' });
   return d.toLocaleDateString([], { day: 'numeric', month: 'short', year: 'numeric' });
@@ -21,9 +24,16 @@ export function longTime(ms: number, now: number = Date.now()): string {
   const days = Math.round((startOfDay(now) - startOfDay(ms)) / DAY);
   const d = new Date(ms);
   const time = d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
-  if (days <= 0) return `Today, ${time}`;
+  if (days === 0) return `Today, ${time}`;
+  if (days === -1) return `Tomorrow, ${time}`;
   if (days === 1) return `Yesterday, ${time}`;
   return `${d.toLocaleDateString([], { weekday: 'short', day: 'numeric', month: 'short', year: d.getFullYear() === new Date(now).getFullYear() ? undefined : 'numeric' })}, ${time}`;
+}
+
+/** A full date for text that leaves this app, such as the line above a quoted message: "Today" would be wrong tomorrow. */
+export function fullTime(ms: number): string {
+  const d = new Date(ms);
+  return `${d.toLocaleDateString([], { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' })}, ${d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false })}`;
 }
 
 export function dayGroup(ms: number, now: number = Date.now()): 'Today' | 'Yesterday' | 'Earlier' {

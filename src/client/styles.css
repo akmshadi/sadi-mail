@@ -592,7 +592,9 @@ textarea.field { resize: vertical; }
 .select-all i { width: 16px; height: 16px; border-radius: 4px; border: 1.5px solid var(--ink-3); display: flex; align-items: center; justify-content: center; color: var(--on-accent); }
 .select-all[aria-checked='true'] i, .select-all[aria-checked='mixed'] i { background: var(--accent); border-color: var(--accent); }
 .bulk .btn.small { padding: 0 8px; font-weight: 600; }
-@media (max-width: 760px) { .select-all { width: 44px; height: 44px; margin-right: 0; } }
+@media (max-width: 760px) { .select-all { height: 44px; margin-right: 2px; } }
+/* A keyboard shortcut means nothing on a phone, and the room goes to the title. */
+@media (max-width: 760px) { .key-hint { display: none; } }
 .bulk { gap: 0; }
 .bulk .btn.small { white-space: nowrap; padding: 0 6px; }
 .bulk .icon-btn { width: 30px; height: 30px; }
@@ -780,6 +782,8 @@ textarea.field { resize: vertical; }
 .saved[data-state='saving']::before, .saved[data-state='saved']::before { content: ''; width: 6px; height: 6px; border-radius: 3px; flex: 0 0 auto; }
 .saved[data-state='saving']::before { border: 1.5px solid var(--ink-3); }
 .saved[data-state='saved']::before { background: var(--green); }
+/* On a narrow screen only the dot is kept: the words pushed the page title down to three letters. */
+@media (max-width: 760px) { .compose-head .saved { font-size: 0; gap: 0; } }
 .dz-card { border-color: var(--edge); box-shadow: var(--elev-1); transition: border-color var(--dur-hover) var(--ease-out); }
 .dz-card:hover { border-color: var(--edge-hover); }
 .dz-card.open { box-shadow: var(--elev-2); }
