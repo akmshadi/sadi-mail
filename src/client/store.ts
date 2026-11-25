@@ -21,25 +21,29 @@ export const filtersOn = (f: ListFilters) => !!(f.after || f.before || f.from.tr
 /** Where the person was (mailbox, address, folder, inbox tab), kept on this device so a reload opens the same place.
  *  Storage can be missing or blocked (private windows, framed pages); then the app simply starts at the inbox. */
 const PLACE_KEY = 'sadi-mail.place';
+/** Which part of the Inbox is listed: every conversation, or one of the sorted sections. */
+export type SectionChoice = InboxSection | 'all';
 interface Place {
   scope: Scope;
   view: View;
-  section: InboxSection;
+  section: SectionChoice;
   /** The conversation that was open. */
   threadId: string | null;
 }
 const VIEWS: readonly View[] = ['inbox', 'archive', 'spam', 'trash', 'starred', 'unread', 'sent', 'drafts', 'scheduled', 'snoozed'];
 const SECTIONS: readonly InboxSection[] = ['primary', 'social', 'promotions', 'updates', 'forums'];
-const START: Place = { scope: { mailboxId: null, addressId: null }, view: 'inbox', section: 'primary', threadId: null };
+// The Inbox opens on every conversation. Opening on one section hid the rest: mail sorted under Updates looked lost once read.
+const START: Place = { scope: { mailboxId: null, addressId: null }, view: 'inbox', section: 'all', threadId: null };
 function readPlace(): Place {
   try {
-    const raw = JSON.parse(localStorage.getItem(PLACE_KEY) ?? 'null') as Partial<Place> | null;
+    const raw = JSON.parse(localStorage.getItem(PLACE_KEY) ?? 'null') as (Partial<Place> & { v?: number }) | null;
     if (!raw || typeof raw !== 'object') return START;
     const id = (v: unknown) => (typeof v === 'string' && v.length > 0 && v.length < 64 ? v : null);
     return {
       scope: { mailboxId: id(raw.scope?.mailboxId), addressId: id(raw.scope?.addressId) },
       view: VIEWS.includes(raw.view as View) ? (raw.view as View) : 'inbox',
-      section: SECTIONS.includes(raw.section as InboxSection) ? (raw.section as InboxSection) : 'primary',
+      // A place saved before the All Mail tab existed always said Primary, chosen or not: start those on All Mail.
+      section: raw.v === 2 && SECTIONS.includes(raw.section as InboxSection) ? (raw.section as InboxSection) : 'all',
       threadId: id(raw.threadId),
     };
   } catch {
@@ -48,7 +52,7 @@ function readPlace(): Place {
 }
 function writePlace(place: Place): void {
   try {
-    localStorage.setItem(PLACE_KEY, JSON.stringify(place));
+    localStorage.setItem(PLACE_KEY, JSON.stringify({ ...place, v: 2 }));
   } catch {
     /* not kept; the next reload starts at the inbox */
   }
@@ -62,7 +66,7 @@ export function useRelay() {
   const [view, setViewState] = useState<View>(initial.view);
   const [tab, setTab] = useState<Tab>('All');
   const [labelId, setLabelId] = useState<string | null>(null);
-  const [section, setSectionState] = useState<InboxSection>(initial.section);
+  const [section, setSectionState] = useState<SectionChoice>(initial.section);
   const [labels, setLabels] = useState<LabelInfo[]>([]);
   const [picked, setPicked] = useState<Set<string>>(new Set());
   const [threads, setThreads] = useState<ThreadSummary[]>([]);
@@ -105,7 +109,7 @@ export function useRelay() {
     if (scope.mailboxId) q.set('mailbox', scope.mailboxId);
     if (scope.addressId) q.set('address', scope.addressId);
     if (labelId) q.set('label', labelId);
-    else if (view === 'inbox') q.set('section', section);
+    else if (view === 'inbox' && section !== 'all') q.set('section', section);
     if (filters.after) q.set('after', String(filters.after));
     if (filters.before) q.set('before', String(filters.before));
     if (filters.from.trim()) q.set('from', filters.from.trim());
@@ -261,7 +265,7 @@ export function useRelay() {
     setSelectedId(null);
     setDetail(null);
   }, []);
-  const setSection = useCallback((next: InboxSection) => {
+  const setSection = useCallback((next: SectionChoice) => {
     setSectionState(next);
     setThreads([]);
     setListLoad('loading');

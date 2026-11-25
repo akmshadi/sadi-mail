@@ -35,6 +35,15 @@ function EmptyList({ relay }: { relay: MailStore }) {
       </div>
     );
   }
+  if (view === 'inbox' && relay.section !== 'all' && !relay.labelId) {
+    return (
+      <div className="state">
+        <strong>Nothing Under {SECTION_TITLES[relay.section]}</strong>
+        <p>Mail is sorted into these tabs as it arrives. The rest of the Inbox is under All Mail.</p>
+        <button className="btn small" onClick={() => relay.setSection('all')}>Show All Mail</button>
+      </div>
+    );
+  }
   if (view === 'inbox' && boot && boot.storage.messages === 0) {
     return (
       <div className="state">
@@ -147,12 +156,15 @@ export function ThreadList({ relay, onOpen }: { relay: MailStore; onOpen: (id: s
         )}
         {view === 'inbox' && !relay.labelId && (
           <div className="sections" role="tablist" aria-label="Inbox Sections">
-            {SECTION_ORDER.map((s) => (
-              <button key={s} type="button" role="tab" aria-selected={relay.section === s} onClick={() => relay.setSection(s)}>
-                {SECTION_TITLES[s]}
-                {relay.counts.sections[s] > 0 && <span className="num" aria-label={`${relay.counts.sections[s]} Unread`}>{relay.counts.sections[s]}</span>}
-              </button>
-            ))}
+            {(['all', ...SECTION_ORDER] as const).map((s) => {
+              const unread = s === 'all' ? relay.counts.inbox : relay.counts.sections[s];
+              return (
+                <button key={s} type="button" role="tab" aria-selected={relay.section === s} title={s === 'all' ? 'Every Conversation In The Inbox' : SECTION_TITLES[s]} onClick={() => relay.setSection(s)}>
+                  {s === 'all' ? 'All Mail' : s === 'promotions' ? 'Promos' : SECTION_TITLES[s]}
+                  {unread > 0 && <span className="num" aria-label={`${unread} Unread`}>{unread}</span>}
+                </button>
+              );
+            })}
           </div>
         )}
         <div className="list-tools">
@@ -160,6 +172,7 @@ export function ThreadList({ relay, onOpen }: { relay: MailStore; onOpen: (id: s
             aria-label="Select All On This Page" title="Select All On This Page" disabled={threads.length === 0}
             onClick={() => (relay.picked.size === threads.length ? relay.clearPicked() : relay.pickAll(threads.map((t) => t.id)))}>
             <i>{relay.picked.size > 0 && <Icon name={relay.picked.size === threads.length ? 'check' : 'minus'} size={11} weight={3} />}</i>
+            <span>Select All</span>
           </button>
           <div className="tabs" role="tablist" aria-label="Filter Messages">
             {tabs.map((t) => (
@@ -200,10 +213,12 @@ export function ThreadList({ relay, onOpen }: { relay: MailStore; onOpen: (id: s
         <div className="bulk" role="toolbar" aria-label="Selected Conversations">
           <span className="num">{relay.picked.size} Selected</span>
           <span className="grow" />
-          <button type="button" className="btn small ghost" onClick={() => void relay.actPicked('read')}>Mark Read</button>
-          <button type="button" className="btn small ghost" onClick={() => void relay.actPicked('unread')}>Mark Unread</button>
-          <button type="button" className="icon-btn" aria-label={view === 'inbox' ? 'Archive Selected' : 'Move Selected To Inbox'} title={view === 'inbox' ? 'Archive' : 'Move To Inbox'} onClick={() => void relay.actPicked(view === 'inbox' ? 'archive' : 'inbox')}><Icon name={view === 'inbox' ? 'archive' : 'inbox'} size={16} /></button>
-          <button type="button" className="icon-btn" aria-label="Move Selected To Trash" title="Trash" onClick={() => void relay.actPicked('trash')}><Icon name="trash" size={16} /></button>
+          <button type="button" className="btn small ghost" title="Mark Selected As Read" onClick={() => void relay.actPicked('read')}>Read</button>
+          <button type="button" className="btn small ghost" title="Mark Selected As Unread" onClick={() => void relay.actPicked('unread')}>Unread</button>
+          {view !== 'trash' && <button type="button" className="btn small ghost" title={view === 'inbox' ? 'Archive Selected' : 'Move Selected To Inbox'} onClick={() => void relay.actPicked(view === 'inbox' ? 'archive' : 'inbox')}>{view === 'inbox' ? 'Archive' : 'To Inbox'}</button>}
+          {view === 'trash'
+            ? <button type="button" className="btn small ghost" title="Move Selected Back To The Inbox" onClick={() => void relay.actPicked('inbox')}>Restore</button>
+            : <button type="button" className="btn small ghost danger" title="Move Selected To Trash" onClick={() => void relay.actPicked('trash')}>Delete</button>}
           <button type="button" className="icon-btn" aria-label="Clear Selection" title="Clear" onClick={relay.clearPicked}><Icon name="close" size={14} weight={2} /></button>
         </div>
       )}

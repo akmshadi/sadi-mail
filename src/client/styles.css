@@ -522,6 +522,9 @@ textarea.field { resize: vertical; }
 .row-wrap.picked .row-btn { background: var(--sel); }
 .bulk { display: flex; align-items: center; gap: 2px; padding: 4px 8px; margin: 0 8px 4px; border: 1px solid var(--line); border-radius: 10px; background: var(--raised); box-shadow: var(--shadow-sm); font-size: 12.5px; font-weight: 600; }
 .bulk span { padding: 0 6px; white-space: nowrap; }
+.bulk { flex-wrap: wrap; row-gap: 2px; }
+.bulk .btn { padding: 0 7px; }
+.bulk .btn.danger { color: var(--red); }
 .files-edit { display: flex; flex-wrap: wrap; gap: 8px; padding: 0 24px 16px; }
 .file-pill { display: inline-flex; align-items: center; gap: 8px; height: 34px; padding: 0 6px 0 10px; border: 1px solid var(--line); border-radius: 9px; background: var(--raised); font-size: 13px; max-width: 100%; }
 .file-pill small { color: var(--ink-3); font-size: 12px; white-space: nowrap; }
@@ -583,7 +586,7 @@ textarea.field { resize: vertical; }
 .msg-frame.plain { border: 0; border-radius: 0; background: var(--reading); }
 
 /* Select every conversation on the page that is showing. */
-.select-all { width: 30px; height: 30px; flex: 0 0 auto; border: 0; border-radius: 7px; background: transparent; padding: 0; display: inline-flex; align-items: center; justify-content: center; margin-right: 4px; }
+.select-all { height: 30px; gap: 7px; padding: 0 8px 0 7px !important; color: var(--ink-2); font-size: 12.5px; white-space: nowrap; flex: 0 0 auto; border: 0; border-radius: 7px; background: transparent; padding: 0; display: inline-flex; align-items: center; justify-content: center; margin-right: 4px; }
 .select-all:hover { background: var(--hover); }
 .select-all:disabled { opacity: 0.4; cursor: default; }
 .select-all i { width: 16px; height: 16px; border-radius: 4px; border: 1.5px solid var(--ink-3); display: flex; align-items: center; justify-content: center; color: var(--on-accent); }
@@ -852,7 +855,7 @@ textarea.field { resize: vertical; }
 .sections button span { min-width: 16px; height: 16px; padding: 0 4px; border-radius: 8px; background: var(--accent); color: var(--on-accent); font-size: 10px; line-height: 16px; font-weight: 700; text-align: center; }
 @media (max-width: 760px) { .sections button { height: 44px; padding: 0 10px; font-size: 13.5px; } }
 .sections { gap: 0; margin: 0; }
-.sections button { flex: 1 0 auto; justify-content: center; padding: 0 5px; font-size: 12px; gap: 4px; }
+.sections button { flex: 1 0 auto; justify-content: center; padding: 0 4px; font-size: 12px; gap: 4px; }
 .sections button span { min-width: 14px; height: 14px; line-height: 14px; padding: 0 3px; font-size: 9.5px; }
 
 /* The reply box opens in place at the foot of the conversation; AI writes inside it. */

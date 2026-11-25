@@ -220,7 +220,7 @@ describe('permissions', () => {
     expect(after.mailboxes[0]!.addresses.map((a) => a.email)).toEqual(['ivy@fieldwork.example']);
 
     // Mail for that address lands in her mailbox, not in the domain's shared one.
-    await deliver({ from: 'client@elsewhere.example', to: 'ivy@fieldwork.example', subject: 'For Ivy only', text: 'Hello Ivy.' });
+    await deliver({ from: 'client@elsewhere.example', to: 'ivy@fieldwork.example', subject: 'For Ivy only', body: 'Hello Ivy.' });
     const hers = (await call<List>('/api/threads?view=inbox', { headers: member, env: hosted })).body.data;
     expect(hers.map((t) => t.subject)).toEqual(['For Ivy only']);
     expect(hers[0]!.mailboxId).toBe(made.body.id);
