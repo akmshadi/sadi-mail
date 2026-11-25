@@ -185,9 +185,13 @@ export function App() {
   }, [unreadTotal, embedded]);
 
   const wide = () => window.matchMedia('(min-width: 761px)').matches;
-  // On a wide screen the first conversation opens by itself, so the reading pane is never blank.
+  // On a wide screen a conversation opens by itself, so the reading pane is never blank: the one that was open before
+  // a reload when it is still in the list, otherwise the newest.
   useEffect(() => {
-    if (relay.listLoad === 'ready' && !selectedId && threads[0] && wide()) relay.select(threads[0].id);
+    if (relay.listLoad !== 'ready' || selectedId || !threads[0]) return;
+    const remembered = relay.takeRestoreThread();
+    if (!wide()) return;
+    relay.select(remembered && threads.some((t) => t.id === remembered) ? remembered : threads[0].id);
   }, [relay.listLoad, selectedId, threads]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const open = useCallback((id: string) => { relay.select(id); setReading(true); }, [relay]);

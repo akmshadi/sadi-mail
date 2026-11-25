@@ -25,10 +25,12 @@ interface Place {
   scope: Scope;
   view: View;
   section: InboxSection;
+  /** The conversation that was open. */
+  threadId: string | null;
 }
 const VIEWS: readonly View[] = ['inbox', 'archive', 'spam', 'trash', 'starred', 'unread', 'sent', 'drafts', 'scheduled', 'snoozed'];
 const SECTIONS: readonly InboxSection[] = ['primary', 'social', 'promotions', 'updates', 'forums'];
-const START: Place = { scope: { mailboxId: null, addressId: null }, view: 'inbox', section: 'primary' };
+const START: Place = { scope: { mailboxId: null, addressId: null }, view: 'inbox', section: 'primary', threadId: null };
 function readPlace(): Place {
   try {
     const raw = JSON.parse(localStorage.getItem(PLACE_KEY) ?? 'null') as Partial<Place> | null;
@@ -38,6 +40,7 @@ function readPlace(): Place {
       scope: { mailboxId: id(raw.scope?.mailboxId), addressId: id(raw.scope?.addressId) },
       view: VIEWS.includes(raw.view as View) ? (raw.view as View) : 'inbox',
       section: SECTIONS.includes(raw.section as InboxSection) ? (raw.section as InboxSection) : 'primary',
+      threadId: id(raw.threadId),
     };
   } catch {
     return START;
@@ -439,7 +442,14 @@ export function useRelay() {
   const mailboxes: MailboxInfo[] = boot?.mailboxes ?? [];
   const addresses: AddressInfo[] = useMemo(() => mailboxes.flatMap((m) => m.addresses), [mailboxes]);
 
-  useEffect(() => writePlace({ scope, view, section }), [scope, view, section]);
+  useEffect(() => writePlace({ scope, view, section, threadId: selectedId }), [scope, view, section, selectedId]);
+  /** The conversation open before a reload, handed out once so the first list opens it again instead of the newest. */
+  const restoreThread = useRef(initial.threadId);
+  const takeRestoreThread = useCallback(() => {
+    const id = restoreThread.current;
+    restoreThread.current = null;
+    return id;
+  }, []);
   // A remembered mailbox or address the person can no longer see (removed, or access taken away) falls back to all mail.
   useEffect(() => {
     if (!boot) return;
@@ -455,7 +465,7 @@ export function useRelay() {
   return {
     deleteForever, emptyFolder, section, setSection, moveToSection,
     labelId, setLabel, labels, loadLabels, snooze, toggleLabel, picked, togglePick, clearPicked: () => setPicked(new Set()), pickAll: (ids: string[]) => setPicked(new Set(ids)), actPicked, applySummary, loadDetail,
-    boot, bootError, loadBoot, mailboxes, addresses, scope, setScope, view, setView, tab, setTab, threads: visible, allThreads: threads, nextCursor, loadMore, loadingMore, filters, setFilters,
+    boot, bootError, loadBoot, mailboxes, addresses, scope, setScope, takeRestoreThread, view, setView, tab, setTab, threads: visible, allThreads: threads, nextCursor, loadMore, loadingMore, filters, setFilters,
     listLoad, listError, loadList, selectedId, select, detail, detailLoad, detailError, loadImages, showImages, counts, act, send, toast, setToast, notify,
   };
 }
