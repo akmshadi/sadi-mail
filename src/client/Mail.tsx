@@ -277,9 +277,18 @@ function HtmlBody({ html }: { html: string }) {
       const natural = doc.documentElement.scrollWidth;
       const room = frame.clientWidth;
       if (room > 0 && natural > room + 1) doc.body.style.zoom = String(Math.max(0.3, room / natural));
-      // Measure every way the page can grow (late images, zoom, margins) so the last line is never cut off.
-      const tall = Math.max(doc.documentElement.scrollHeight, doc.body.scrollHeight, Math.ceil(doc.documentElement.getBoundingClientRect().height));
-      setHeight(Math.min(Math.max(tall + 2, 60), 20_000));
+      // Measure the content itself, never the page: a page is at least as tall as its frame, so measuring it
+      // after the frame grew would report the frame's own height back and the message would grow without end.
+      const range = doc.createRange();
+      range.selectNodeContents(doc.body);
+      const content = range.getBoundingClientRect();
+      const box = doc.body.getBoundingClientRect();
+      const style = frame.contentWindow?.getComputedStyle(doc.body);
+      const below = style ? (parseFloat(style.paddingBottom) || 0) + (parseFloat(style.marginBottom) || 0) : 0;
+      const scale = box.width > 0 && doc.body.offsetWidth > 0 ? box.width / doc.body.offsetWidth : 1;
+      const scrolled = frame.contentWindow?.scrollY ?? 0;
+      const bottom = (content.height > 0 ? content.bottom : box.bottom - below * scale) + scrolled + below * scale;
+      setHeight(Math.min(Math.max(Math.ceil(bottom) + 1, 60), 20_000));
     };
     const onLoad = () => {
       measure();
