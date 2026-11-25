@@ -431,7 +431,7 @@ export function renderDesign(design: EmailDesign, options: { preview?: boolean }
     pre ? `<div style="display:none;max-height:0;max-width:0;overflow:hidden;opacity:0;mso-hide:all;font-size:1px;line-height:1px;color:${s.background};">${esc(pre)}${'&#8204;&nbsp;'.repeat(24)}</div>` : '',
     `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="${s.background}" style="width:100%;background-color:${s.background};">`,
     left ? '<tr><td class="outer" align="left" style="padding:0;">' : '<tr><td class="outer" align="center" style="padding:24px 12px;">',
-    `<table role="presentation" width="600" cellpadding="0" cellspacing="0" border="0" bgcolor="${s.surface}" align="${left ? 'left' : 'center'}" style="width:600px;max-width:100%;background-color:${s.surface};border-radius:${left ? 0 : s.radius}px;border-collapse:separate;overflow:hidden;">`,
+    `<table role="presentation" width="600" cellpadding="0" cellspacing="0" border="0" bgcolor="${s.surface}" align="${left ? 'left' : 'center'}" style="width:100%;max-width:600px;background-color:${s.surface};border-radius:${left ? 0 : s.radius}px;border-collapse:separate;overflow:hidden;">`,
     first && first !== 'header' ? edge(16) : '',
     body,
     last && last !== 'footer' ? edge(24) : '',
