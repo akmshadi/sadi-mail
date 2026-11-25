@@ -198,6 +198,34 @@ describe('permissions', () => {
     expect((await call<unknown>('/api/users', { headers, env: hosted })).status).toBe(403);
   });
 
+  it('lets an admin add an empty mailbox for one address, which only the person granted it can see', async () => {
+    const { hosted, token } = await hostEnv();
+    const admin = { authorization: `Bearer ${await token('admin', 'ada')}`, 'content-type': 'application/json' };
+    const member = { authorization: `Bearer ${await token('member', 'ivy')}`, 'content-type': 'application/json' };
+
+    expect((await call<unknown>('/api/mailboxes', { method: 'POST', headers: member, body: JSON.stringify({ name: 'Ivy' }), env: hosted })).status).toBe(403);
+    expect((await call<unknown>('/api/mailboxes', { method: 'POST', headers: admin, body: JSON.stringify({ name: '   ' }), env: hosted })).status).toBe(422);
+    const made = await call<{ id: string }>('/api/mailboxes', { method: 'POST', headers: admin, body: JSON.stringify({ name: 'Ivy' }), env: hosted });
+    expect(made.status).toBe(200);
+    expect((await call<unknown>('/api/mailboxes', { method: 'POST', headers: admin, body: JSON.stringify({ name: 'ivy' }), env: hosted })).status).toBe(409);
+    expect((await call<unknown>('/api/addresses', { method: 'POST', headers: admin, body: JSON.stringify({ mailboxId: made.body.id, email: 'ivy@fieldwork.example' }), env: hosted })).status).toBe(200);
+
+    // Until the grant, she sees nothing; after it, her own mailbox and no other.
+    const ivy = (await call<Bootstrap>('/api/bootstrap', { headers: member, env: hosted })).body;
+    expect(ivy.mailboxes).toHaveLength(0);
+    const grant = { grants: [{ mailboxId: made.body.id, read: true, send: true, edit: true, delete: false }] };
+    expect((await call<unknown>(`/api/users/${ivy.user.id}`, { method: 'PATCH', headers: admin, body: JSON.stringify(grant), env: hosted })).status).toBe(200);
+    const after = (await call<Bootstrap>('/api/bootstrap', { headers: member, env: hosted })).body;
+    expect(after.mailboxes.map((m) => m.name)).toEqual(['Ivy']);
+    expect(after.mailboxes[0]!.addresses.map((a) => a.email)).toEqual(['ivy@fieldwork.example']);
+
+    // Mail for that address lands in her mailbox, not in the domain's shared one.
+    await deliver({ from: 'client@elsewhere.example', to: 'ivy@fieldwork.example', subject: 'For Ivy only', text: 'Hello Ivy.' });
+    const hers = (await call<List>('/api/threads?view=inbox', { headers: member, env: hosted })).body.data;
+    expect(hers.map((t) => t.subject)).toEqual(['For Ivy only']);
+    expect(hers[0]!.mailboxId).toBe(made.body.id);
+  });
+
   it('applies read-only and send grants', async () => {
     const { hosted, token } = await hostEnv();
     const headers = { authorization: `Bearer ${await token('member', 'riya')}`, 'content-type': 'application/json' };

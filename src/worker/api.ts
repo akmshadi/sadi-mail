@@ -411,6 +411,22 @@ api.post('/addresses', async (c) => {
   return c.json({ id });
 });
 
+// A mailbox with nothing in it yet. Sadi Mail has no screen for this: a host application uses it to give an
+// address a mailbox of its own, which can then be granted to one person. Add its first address with POST /addresses.
+api.post('/mailboxes', async (c) => {
+  const p = c.var.principal;
+  if (!isAdmin(p)) throw new HttpError(403, 'forbidden', 'Only an owner or admin can add a mailbox.');
+  const body = await c.req.json<{ name?: string }>().catch(() => ({}) as Record<string, never>);
+  const name = (typeof body.name === 'string' ? body.name : '').replace(/\s+/g, ' ').trim().slice(0, 60);
+  if (!name) throw new HttpError(422, 'no_name', 'Give the mailbox a name.');
+  if (await c.env.DB.prepare('SELECT 1 AS x FROM mailbox WHERE name = ? COLLATE NOCASE').bind(name).first()) throw new HttpError(409, 'exists', 'A mailbox with that name already exists.');
+  const position = (await c.env.DB.prepare('SELECT COUNT(*) AS n FROM mailbox').first<{ n: number }>())?.n ?? 0;
+  const id = newId();
+  await c.env.DB.prepare('INSERT INTO mailbox (id, name, position, created_at) VALUES (?, ?, ?, ?)').bind(id, name, position, Date.now()).run();
+  await audit(c.env, p, 'mailbox.create', id, name);
+  return c.json({ id });
+});
+
 // ---------- people and permissions ----------
 
 const ROLES: Role[] = ['owner', 'admin', 'member', 'viewer'];
