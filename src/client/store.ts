@@ -84,6 +84,7 @@ export function useRelay() {
   const [filters, setFilters] = useState<ListFilters>(NO_FILTERS);
   const [loadingMore, setLoadingMore] = useState(false);
   const moreBusy = useRef(false);
+  const [reload, setReload] = useState(0);
   const listKey = `${view}|${scope.mailboxId ?? ''}|${scope.addressId ?? ''}|${labelId ?? ''}|${section}|${filters.after}|${filters.before}|${filters.from}|${filters.files}`;
   const liveKey = useRef(listKey);
   const listSeq = useRef(0);
@@ -185,9 +186,11 @@ export function useRelay() {
     void loadBoot();
     loadLabels();
   }, [loadBoot, loadLabels]);
+  // Runs when the place changes and whenever a setter asks for it. Without the ask, choosing the place you are
+  // already in (Inbox while in the Inbox, the open label, the same tab) blanked the list and never filled it again.
   useEffect(() => {
     void loadList();
-  }, [loadList]);
+  }, [loadList, reload]);
 
   // New mail shows up without a reload: check quietly every 20 s and when the window regains focus.
   useEffect(() => {
@@ -251,6 +254,7 @@ export function useRelay() {
     setPicked(new Set());
     setThreads([]);
     setListLoad('loading');
+    setReload((n) => n + 1);
     setSelectedId(null);
     setDetail(null);
   }, []);
@@ -260,6 +264,7 @@ export function useRelay() {
     if (id) setViewState('inbox');
     setThreads([]);
     setListLoad('loading');
+    setReload((n) => n + 1);
     setTab('All');
     setPicked(new Set());
     setSelectedId(null);
@@ -269,6 +274,7 @@ export function useRelay() {
     setSectionState(next);
     setThreads([]);
     setListLoad('loading');
+    setReload((n) => n + 1);
     setPicked(new Set());
     setSelectedId(null);
     setDetail(null);
@@ -299,6 +305,7 @@ export function useRelay() {
     setViewState(next);
     setThreads([]);
     setListLoad('loading');
+    setReload((n) => n + 1);
     setTab('All');
     setSelectedId(null);
     setDetail(null);
