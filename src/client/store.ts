@@ -18,14 +18,48 @@ const message = (err: unknown) => (err instanceof RequestError ? err.message : '
 export const NO_FILTERS: ListFilters = { after: null, before: null, from: '', files: false };
 export const filtersOn = (f: ListFilters) => !!(f.after || f.before || f.from.trim() || f.files);
 
+/** Where the person was (mailbox, address, folder, inbox tab), kept on this device so a reload opens the same place.
+ *  Storage can be missing or blocked (private windows, framed pages); then the app simply starts at the inbox. */
+const PLACE_KEY = 'sadi-mail.place';
+interface Place {
+  scope: Scope;
+  view: View;
+  section: InboxSection;
+}
+const VIEWS: readonly View[] = ['inbox', 'archive', 'spam', 'trash', 'starred', 'unread', 'sent', 'drafts', 'scheduled', 'snoozed'];
+const SECTIONS: readonly InboxSection[] = ['primary', 'social', 'promotions', 'updates', 'forums'];
+const START: Place = { scope: { mailboxId: null, addressId: null }, view: 'inbox', section: 'primary' };
+function readPlace(): Place {
+  try {
+    const raw = JSON.parse(localStorage.getItem(PLACE_KEY) ?? 'null') as Partial<Place> | null;
+    if (!raw || typeof raw !== 'object') return START;
+    const id = (v: unknown) => (typeof v === 'string' && v.length > 0 && v.length < 64 ? v : null);
+    return {
+      scope: { mailboxId: id(raw.scope?.mailboxId), addressId: id(raw.scope?.addressId) },
+      view: VIEWS.includes(raw.view as View) ? (raw.view as View) : 'inbox',
+      section: SECTIONS.includes(raw.section as InboxSection) ? (raw.section as InboxSection) : 'primary',
+    };
+  } catch {
+    return START;
+  }
+}
+function writePlace(place: Place): void {
+  try {
+    localStorage.setItem(PLACE_KEY, JSON.stringify(place));
+  } catch {
+    /* not kept; the next reload starts at the inbox */
+  }
+}
+
 export function useRelay() {
   const [boot, setBoot] = useState<Bootstrap | null>(null);
   const [bootError, setBootError] = useState<string | null>(null);
-  const [scope, setScopeState] = useState<Scope>({ mailboxId: null, addressId: null });
-  const [view, setViewState] = useState<View>('inbox');
+  const [initial] = useState(readPlace);
+  const [scope, setScopeState] = useState<Scope>(initial.scope);
+  const [view, setViewState] = useState<View>(initial.view);
   const [tab, setTab] = useState<Tab>('All');
   const [labelId, setLabelId] = useState<string | null>(null);
-  const [section, setSectionState] = useState<InboxSection>('primary');
+  const [section, setSectionState] = useState<InboxSection>(initial.section);
   const [labels, setLabels] = useState<LabelInfo[]>([]);
   const [picked, setPicked] = useState<Set<string>>(new Set());
   const [threads, setThreads] = useState<ThreadSummary[]>([]);
@@ -404,6 +438,15 @@ export function useRelay() {
 
   const mailboxes: MailboxInfo[] = boot?.mailboxes ?? [];
   const addresses: AddressInfo[] = useMemo(() => mailboxes.flatMap((m) => m.addresses), [mailboxes]);
+
+  useEffect(() => writePlace({ scope, view, section }), [scope, view, section]);
+  // A remembered mailbox or address the person can no longer see (removed, or access taken away) falls back to all mail.
+  useEffect(() => {
+    if (!boot) return;
+    const mailboxOk = !scope.mailboxId || mailboxes.some((m) => m.id === scope.mailboxId);
+    const addressOk = !scope.addressId || addresses.some((a) => a.id === scope.addressId);
+    if (!mailboxOk || !addressOk) setScope({ mailboxId: null, addressId: null });
+  }, [boot, mailboxes, addresses, scope, setScope]);
   const visible = useMemo(
     () => threads.filter((t) => (tab === 'All' ? true : tab === 'Unread' ? t.unread : t.needsReply)),
     [threads, tab],

@@ -246,7 +246,7 @@ a { color: var(--accent-text); }
 .position { font-size: 12.5px; color: var(--ink-3); margin-right: 8px; white-space: nowrap; }
 @media (max-width: 1640px) { .position { display: none; } }
 .reader-scroll { flex: 1; overflow-y: auto; padding: 32px 40px 24px; }
-.article { max-width: 680px; margin: 0 auto; display: flex; flex-direction: column; gap: 24px; }
+.article { max-width: 860px; margin: 0 auto; display: flex; flex-direction: column; gap: 24px; }
 .subject { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
 .subject h2 { font-size: 24px; line-height: 1.25; font-weight: 650; letter-spacing: -0.025em; }
 .alert { display: flex; gap: 12px; padding: 14px 16px; border-radius: 12px; background: var(--red-soft); border: 1px solid var(--red-line); }
@@ -280,7 +280,7 @@ a { color: var(--accent-text); }
 .file b { font-weight: 600; display: block; }
 .file small { font-size: 12px; color: var(--ink-3); }
 .reply-bar { flex: 0 0 auto; padding: 12px 40px 20px; }
-.reply-box { max-width: 680px; margin: 0 auto; width: 100%; height: 52px; padding: 0 8px 0 16px; border: 1px solid var(--line); border-radius: 12px; background: var(--raised); color: var(--ink-3); font-size: 14px; display: flex; align-items: center; gap: 12px; text-align: left; cursor: text; box-shadow: var(--shadow-sm); }
+.reply-box { max-width: 860px; margin: 0 auto; width: 100%; height: 52px; padding: 0 8px 0 16px; border: 1px solid var(--line); border-radius: 12px; background: var(--raised); color: var(--ink-3); font-size: 14px; display: flex; align-items: center; gap: 12px; text-align: left; cursor: text; box-shadow: var(--shadow-sm); }
 .reply-box:hover { border-color: var(--accent-mid); }
 .reply-box .go { width: 36px; height: 36px; border-radius: 9px; background: var(--accent); color: var(--on-accent); display: flex; align-items: center; justify-content: center; }
 
@@ -430,8 +430,12 @@ textarea.field { resize: vertical; }
 /* ---------- phone ---------- */
 .mobile-bar, .mobile-top, .back-btn { display: none; }
 
-@media (max-width: 1380px) {
+/* The message gets the room first: the Assistant panel moves behind its button until the window is wide enough
+   for the folders, the list, a roomy reading pane and the panel side by side. */
+@media (max-width: 1720px) {
   .context { display: none; }
+}
+@media (max-width: 1380px) {
   .msg-date { display: none; }
   .compose-ai { flex-basis: 280px; }
 }
@@ -545,7 +549,7 @@ textarea.field { resize: vertical; }
 /* The Assistant panel stays reachable on narrower windows and phones as a slide-over. */
 .ctx-toggle, .ctx-close { display: none; }
 .surface { position: relative; }
-@media (max-width: 1380px) {
+@media (max-width: 1720px) {
   .ctx-toggle, .ctx-close { display: inline-flex; }
   .context.open { display: flex; position: absolute; right: 0; top: 0; bottom: 0; width: min(340px, 100%); z-index: 8; box-shadow: var(--shadow-lg); animation: rise var(--dur-hover) var(--ease-out); }
 }
@@ -575,6 +579,8 @@ textarea.field { resize: vertical; }
 .msg-body:has(.msg-frame) { padding-left: 0; }
 .msg-frame { overflow: hidden; }
 .msg-frame.dark { background: #16191f; }
+/* A simple message is not boxed in: it sits on the reading surface like any other text. */
+.msg-frame.plain { border: 0; border-radius: 0; background: var(--reading); }
 
 /* Select every conversation on the page that is showing. */
 .select-all { width: 30px; height: 30px; flex: 0 0 auto; border: 0; border-radius: 7px; background: transparent; padding: 0; display: inline-flex; align-items: center; justify-content: center; margin-right: 4px; }
@@ -1066,7 +1072,7 @@ button.avatar.portrait:focus-visible { outline: 2px solid var(--accent); outline
 /* ---------- Message list: every conversation is its own card ----------
    The list sits on a recessed ground; each conversation is a raised card with its own edge and
    shadow, so one message ends clearly before the next begins. */
-.list { flex-basis: clamp(340px, 28vw, 430px); background: var(--mat-secondary-bg, var(--subtle)); }
+.list { flex-basis: clamp(320px, 24vw, 400px); background: var(--mat-secondary-bg, var(--subtle)); }
 .rows { gap: 8px; padding: 2px 12px 16px; }
 .group { padding: 12px 4px 2px; }
 .row-btn { padding: 13px 12px 13px 16px; border: 1px solid var(--edge); border-radius: 12px; background: var(--raised); box-shadow: var(--elev-1);

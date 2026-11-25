@@ -239,6 +239,9 @@ const FRAME_STYLE = `<meta http-equiv="Content-Security-Policy" content="default
 /** In the dark theme a simple message (no colours of its own) is shown dark too, instead of as a bright white box. */
 const DARK_FRAME_STYLE = `<style>html{color-scheme:dark}body{color:#e5e7eb;background:#16191f}a{color:#aab1fb}blockquote{border-left-color:#2a2f3a;color:#9aa3b2}</style>`;
 
+/** A simple message (no colours or layout of its own) reads like the rest of the page: same type, no box around it. */
+const PLAIN_FRAME_STYLE = `<style>body{padding:2px 0 8px;font-size:15.5px;line-height:1.7}p{margin:0 0 1em}p:last-child{margin-bottom:0}</style>`;
+
 /** A designed email sets its own colours or layout tables; those keep their white page in every theme. */
 function hasOwnColours(html: string): boolean {
   return /bgcolor\s*=|background(-color)?\s*:|<table[\s>]|\scolor\s*:\s*#(?:f{3}|f{6})\b/i.test(html);
@@ -259,7 +262,8 @@ function useDarkTheme(): boolean {
 /** Message HTML runs in a frame that cannot execute scripts; its height follows its content. */
 function HtmlBody({ html }: { html: string }) {
   const ref = useRef<HTMLIFrameElement>(null);
-  const dark = useDarkTheme() && !hasOwnColours(html);
+  const plain = !hasOwnColours(html);
+  const dark = useDarkTheme() && plain;
   const [height, setHeight] = useState(120);
   useEffect(() => {
     const frame = ref.current;
@@ -273,7 +277,9 @@ function HtmlBody({ html }: { html: string }) {
       const natural = doc.documentElement.scrollWidth;
       const room = frame.clientWidth;
       if (room > 0 && natural > room + 1) doc.body.style.zoom = String(Math.max(0.3, room / natural));
-      setHeight(Math.min(Math.max(doc.documentElement.scrollHeight, 60), 20_000));
+      // Measure every way the page can grow (late images, zoom, margins) so the last line is never cut off.
+      const tall = Math.max(doc.documentElement.scrollHeight, doc.body.scrollHeight, Math.ceil(doc.documentElement.getBoundingClientRect().height));
+      setHeight(Math.min(Math.max(tall + 2, 60), 20_000));
     };
     const onLoad = () => {
       measure();
@@ -290,7 +296,7 @@ function HtmlBody({ html }: { html: string }) {
       observer?.disconnect();
     };
   }, [html, dark]);
-  return <iframe ref={ref} className={`msg-frame${dark ? ' dark' : ''}`} title="Message Content" sandbox="allow-same-origin allow-popups allow-popups-to-escape-sandbox" srcDoc={FRAME_STYLE + (dark ? DARK_FRAME_STYLE : '') + html} style={{ height }} />;
+  return <iframe ref={ref} className={`msg-frame${plain ? ' plain' : ''}${dark ? ' dark' : ''}`} title="Message Content" sandbox="allow-same-origin allow-popups allow-popups-to-escape-sandbox" srcDoc={FRAME_STYLE + (plain ? PLAIN_FRAME_STYLE : '') + (dark ? DARK_FRAME_STYLE : '') + html} style={{ height }} />;
 }
 
 function authInfo(m: MessageDetail): { icon: 'shield' | 'shieldX' | 'shieldOff' | 'send'; cls: string; label: string } {
